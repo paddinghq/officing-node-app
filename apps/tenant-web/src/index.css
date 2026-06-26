@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: var(--brand-primary, #6366f1);
+}
+
+:root {
+  --brand-primary: #6366f1;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  @apply bg-gray-50 text-gray-900;
+}
