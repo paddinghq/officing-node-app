@@ -13,7 +13,7 @@ const planColor: Record<string, Color> = { free: 'gray', basic: 'blue', standard
 
 export function TenantListPage() {
   const admin = useAdminStore(s => s.admin);
-  const isSuperAdmin = admin?.role === 'superadmin';
+  const isSuperAdmin = admin?.role == 'superadmin';
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const { data, isLoading } = useQuery({
@@ -43,8 +43,8 @@ export function TenantListPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>}
-            {!isLoading && !data?.docs?.length && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No tenants found.</td></tr>}
-            {data?.docs?.map(t => (
+            {!isLoading && !data?.tenants?.length && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No tenants found.</td></tr>}
+            {data?.tenants?.map(t => (
               <tr key={t._id} className="border-b last:border-0 hover:bg-gray-50">
                 <td className="px-4 py-3 font-mono text-xs">{t.slug}</td>
                 <td className="px-4 py-3 font-medium">{t.name}</td>
@@ -58,7 +58,7 @@ export function TenantListPage() {
             ))}
           </tbody>
         </table>
-        {data && <div className="px-4 pb-4"><Pagination page={page} hasNextPage={data.hasNextPage} hasPrevPage={data.hasPrevPage} totalDocs={data.totalDocs} limit={20} onPageChange={setPage} /></div>}
+        {data && <div className="px-4 pb-4"><Pagination page={page} hasNextPage={data.hasNextPage} hasPrevPage={data.hasPrevPage} totalDocs={data.total} limit={20} onPageChange={setPage} /></div>}
       </div>
     </div>
   );

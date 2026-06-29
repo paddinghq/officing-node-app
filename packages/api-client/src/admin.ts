@@ -60,7 +60,7 @@ export const adminLogin = (email: string, password: string) =>
   }).then(r => r.json()) as Promise<{ success: boolean; accessToken: string; admin: AdminUser }>;
 
 // Overview
-export const getOverview = () => adminFetch<{ success: boolean; data: TenantOverview }>('/overview');
+export const getOverview = () => adminFetch<{ success: boolean; overview: TenantOverview }>('/overview');
 
 // Tenants
 const qs = (p: Record<string, unknown>) => new URLSearchParams(

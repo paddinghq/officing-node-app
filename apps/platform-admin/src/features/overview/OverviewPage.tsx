@@ -5,7 +5,7 @@ import { Card } from '../../components/ui/Card';
 
 export function OverviewPage() {
   const { data, isLoading } = useQuery({ queryKey: ['admin-overview'], queryFn: getOverview });
-  const d = data?.data;
+  const d = data?.overview;
 
   return (
     <div className="p-8 space-y-6">
@@ -16,6 +16,8 @@ export function OverviewPage() {
             {[
               { label: 'Total Tenants', value: d?.totalTenants ?? 0 },
               { label: 'Active', value: d?.active ?? 0 },
+              { label: 'Deactivated', value: d?.deactivated ?? 0 },
+              { label: 'Provisioning', value: d?.provisioning ?? 0 },
               { label: 'Suspended', value: d?.suspended ?? 0 },
             ].map(s => (
               <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">

@@ -258,6 +258,8 @@ export interface TenantOverview {
   totalTenants: number;
   active: number;
   suspended: number;
+  provisioning: number;
+  deactivated: number;
   byPlan: Record<Plan, number>;
 }
 

@@ -39,7 +39,7 @@ export function TenantDetailPage() {
   const isSuperAdmin = admin?.role === 'superadmin';
 
   const { data, isLoading } = useQuery({ queryKey: ['admin-tenant', slug], queryFn: () => getTenant(slug!), enabled: !!slug });
-  const tenant = data?.data;
+  const tenant = data?.tenant;
 
   // Branding state
   const [branding, setBranding] = useState({ logoUrl: '', primaryColor: '', frontendBaseURL: '', supportEmail: '' });
@@ -58,19 +58,19 @@ export function TenantDetailPage() {
     if (tenant) {
       if (!brandingLoaded) {
         setBranding({
-          logoUrl: tenant.logoUrl ?? '',
-          primaryColor: tenant.primaryColor ?? '',
-          frontendBaseURL: tenant.frontendBaseURL ?? '',
-          supportEmail: tenant.supportEmail ?? '',
+          logoUrl: tenant.branding.logoUrl ?? '',
+          primaryColor: tenant.branding.primaryColor ?? '',
+          frontendBaseURL: tenant.branding.frontendBaseURL ?? '',
+          supportEmail: tenant.branding.supportEmail ?? '',
         });
         setBrandingLoaded(true);
       }
       if (!subLoaded) {
         setSubForm({
-          plan: tenant.plan ?? 'basic',
-          isActive: tenant.isActive ?? true,
-          subExpDate: tenant.subExpDate?.slice(0, 10) ?? '',
-          billingCycle: tenant.billingCycle ?? 'yearly',
+          plan: tenant.subscription.plan ?? 'basic',
+          isActive: tenant.subscription.isActive ?? true,
+          subExpDate: tenant.subscription.subExpDate?.slice(0, 10) ?? '',
+          billingCycle: tenant.subscription.billingCycle ?? 'yearly',
           supportNotes: '',
         });
         setSubLoaded(true);
