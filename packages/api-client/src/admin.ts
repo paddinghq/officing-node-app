@@ -71,7 +71,7 @@ export const listTenants = (p: { page?: number; limit?: number; status?: string 
   adminFetch<PaginatedResponse<Tenant>>(`/tenants?${qs(p)}`);
 
 export const getTenant = (slug: string) =>
-  adminFetch<{ success: boolean; data: Tenant }>(`/tenants/${slug}`);
+  adminFetch<{ success: boolean; tenant: Tenant }>(`/tenants/${slug}`);
 
 export const createTenant = (body: Record<string, unknown>) =>
   adminFetch<{ success: boolean; data: Tenant }>('/tenants', { method: 'POST', body: JSON.stringify(body) });

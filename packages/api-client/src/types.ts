@@ -9,8 +9,8 @@ export interface ApiResponse<T = unknown> {
 export interface PaginatedResponse<T> {
   success: boolean;
   message?: string;
-  docs: T[];
-  totalDocs: number;
+  tenants: T[];
+  total: number;
   page: number;
   limit: number;
   hasNextPage: boolean;
