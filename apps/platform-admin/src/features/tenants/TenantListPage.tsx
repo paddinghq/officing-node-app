@@ -48,7 +48,7 @@ export function TenantListPage() {
               <tr key={t._id} className="border-b last:border-0 hover:bg-gray-50">
                 <td className="px-4 py-3 font-mono text-xs">{t.slug}</td>
                 <td className="px-4 py-3 font-medium">{t.name}</td>
-                <td className="px-4 py-3"><Badge color={planColor[t.plan] ?? 'gray'}>{t.plan}</Badge></td>
+                <td className="px-4 py-3"><Badge color={planColor[t.subscription.plan] ?? 'gray'}>{t.subscription.plan}</Badge></td>
                 <td className="px-4 py-3"><Badge color={statusColor[t.status] ?? 'gray'}>{t.status}</Badge></td>
                 <td className="px-4 py-3 text-gray-500">{new Date(t.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">
@@ -58,7 +58,7 @@ export function TenantListPage() {
             ))}
           </tbody>
         </table>
-        {data && <div className="px-4 pb-4"><Pagination page={page} hasNextPage={data.hasNextPage} hasPrevPage={data.hasPrevPage} totalDocs={data.total} limit={20} onPageChange={setPage} /></div>}
+        {data && <div className="px-4 pb-4"><Pagination page={page} hasNextPage={page * 20 < data.total} hasPrevPage={page > 1} totalDocs={data.total} limit={20} onPageChange={setPage} /></div>}
       </div>
     </div>
   );

@@ -28,8 +28,8 @@ export function AuditLogsPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>}
-            {!isLoading && !data?.docs?.length && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No audit logs.</td></tr>}
-            {data?.docs?.map(log => (
+            {!isLoading && !data?.tenants?.length && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No audit logs.</td></tr>}
+            {data?.tenants?.map(log => (
               <tr key={log._id} className="border-b last:border-0 hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium">{log.action}</td>
                 <td className="px-4 py-3 font-mono text-xs">{log.tenantSlug ?? '—'}</td>
@@ -39,7 +39,7 @@ export function AuditLogsPage() {
             ))}
           </tbody>
         </table>
-        {data && <div className="px-4 pb-4"><Pagination page={page} hasNextPage={data.hasNextPage} hasPrevPage={data.hasPrevPage} totalDocs={data.totalDocs} limit={30} onPageChange={setPage} /></div>}
+        {data && <div className="px-4 pb-4"><Pagination page={page} hasNextPage={page * 30 < data.total} hasPrevPage={page > 1} totalDocs={data.total} limit={30} onPageChange={setPage} /></div>}
       </div>
     </div>
   );

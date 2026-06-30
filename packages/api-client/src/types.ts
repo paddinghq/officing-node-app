@@ -9,12 +9,20 @@ export interface ApiResponse<T = unknown> {
 export interface PaginatedResponse<T> {
   success: boolean;
   message?: string;
+  docs: T[];
+  totalDocs: number;
+  page: number;
+  limit: number;
+  hasNextPage: boolean;
+  hasPrevPage?: boolean;
+}
+
+export interface AdminListResponse<T> {
+  success: boolean;
   tenants: T[];
   total: number;
   page: number;
   limit: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -238,20 +246,30 @@ export interface Notification {
 
 export type TenantStatus = 'active' | 'suspended' | 'inactive';
 
+export interface TenantBranding {
+  logoUrl?: string;
+  primaryColor?: string;
+  supportEmail?: string;
+  frontendBaseURL?: string;
+}
+
+export interface TenantSubscription {
+  plan: Plan;
+  isActive: boolean;
+  subExpDate: string | null;
+  billingCycle: BillingCycle | null;
+  supportNotes?: string;
+}
+
 export interface Tenant {
   _id: string;
   slug: string;
   name: string;
   status: TenantStatus;
-  plan: Plan;
-  isActive: boolean;
-  subExpDate?: string | null;
-  billingCycle?: BillingCycle;
-  logoUrl?: string;
-  primaryColor?: string;
-  frontendBaseURL?: string;
-  supportEmail?: string;
+  subscription: TenantSubscription;
+  branding: TenantBranding;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface TenantOverview {

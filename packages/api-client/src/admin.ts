@@ -1,6 +1,6 @@
 import type {
   Tenant, TenantOverview, AuditLog, AdminUser,
-  Plan, BillingCycle, PaginatedResponse, ApiResponse,
+  Plan, BillingCycle, AdminListResponse, ApiResponse,
 } from './types';
 
 function getEnv(key: string, fallback: string): string {
@@ -68,7 +68,7 @@ const qs = (p: Record<string, unknown>) => new URLSearchParams(
 ).toString();
 
 export const listTenants = (p: { page?: number; limit?: number; status?: string } = {}) =>
-  adminFetch<PaginatedResponse<Tenant>>(`/tenants?${qs(p)}`);
+  adminFetch<AdminListResponse<Tenant>>(`/tenants?${qs(p)}`);
 
 export const getTenant = (slug: string) =>
   adminFetch<{ success: boolean; tenant: Tenant }>(`/tenants/${slug}`);
@@ -103,11 +103,11 @@ export const provisionMasterAdmin = (slug: string, body: {
 // Per-tenant read
 export const getTenantStats = (slug: string) => adminFetch<{ success: boolean; data: Record<string, unknown> }>(`/tenants/${slug}/stats`);
 export const getTenantUsers = (slug: string, p: { page?: number; limit?: number } = {}) =>
-  adminFetch<PaginatedResponse<Record<string, unknown>>>(`/tenants/${slug}/users?${qs(p)}`);
+  adminFetch<AdminListResponse<Record<string, unknown>>>(`/tenants/${slug}/users?${qs(p)}`);
 export const getTenantAuditLogs = (slug: string, p: { page?: number; limit?: number } = {}) =>
-  adminFetch<PaginatedResponse<AuditLog>>(`/tenants/${slug}/audit-logs?${qs(p)}`);
+  adminFetch<AdminListResponse<AuditLog>>(`/tenants/${slug}/audit-logs?${qs(p)}`);
 export const getTenantHealth = (slug: string) => adminFetch<{ success: boolean; data: Record<string, unknown> }>(`/tenants/${slug}/health`);
 
 // Platform audit logs
 export const listAuditLogs = (p: { page?: number; limit?: number; tenantSlug?: string } = {}) =>
-  adminFetch<PaginatedResponse<AuditLog>>(`/audit-logs?${qs(p)}`);
+  adminFetch<AdminListResponse<AuditLog>>(`/audit-logs?${qs(p)}`);

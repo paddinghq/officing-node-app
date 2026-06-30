@@ -71,7 +71,7 @@ export function TenantDetailPage() {
           isActive: tenant.subscription.isActive ?? true,
           subExpDate: tenant.subscription.subExpDate?.slice(0, 10) ?? '',
           billingCycle: tenant.subscription.billingCycle ?? 'yearly',
-          supportNotes: '',
+          supportNotes: tenant.subscription.supportNotes ?? '',
         });
         setSubLoaded(true);
       }
@@ -119,7 +119,7 @@ export function TenantDetailPage() {
         <Link to="/admin/tenants" className="text-gray-400 hover:text-gray-600">← Tenants</Link>
         <h2 className="text-xl font-semibold">{tenant.name}</h2>
         <Badge color={statusColor[tenant.status] ?? 'gray'}>{tenant.status}</Badge>
-        <Badge color={planColor[tenant.plan] ?? 'gray'}>{tenant.plan}</Badge>
+        <Badge color={planColor[tenant.subscription.plan] ?? 'gray'}>{tenant.subscription.plan}</Badge>
       </div>
 
       {/* Info + Actions */}
@@ -137,8 +137,8 @@ export function TenantDetailPage() {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div><p className="text-gray-500">Slug</p><p className="font-mono">{tenant.slug}</p></div>
           <div><p className="text-gray-500">Created</p><p>{new Date(tenant.createdAt).toLocaleDateString()}</p></div>
-          {tenant.supportEmail && <div><p className="text-gray-500">Support Email</p><p>{tenant.supportEmail}</p></div>}
-          {tenant.frontendBaseURL && <div><p className="text-gray-500">Frontend URL</p><p>{tenant.frontendBaseURL}</p></div>}
+          {tenant.branding.supportEmail && <div><p className="text-gray-500">Support Email</p><p>{tenant.branding.supportEmail}</p></div>}
+          {tenant.branding.frontendBaseURL && <div><p className="text-gray-500">Frontend URL</p><p>{tenant.branding.frontendBaseURL}</p></div>}
         </div>
       </Card>
 
