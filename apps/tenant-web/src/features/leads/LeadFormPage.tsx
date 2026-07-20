@@ -64,7 +64,7 @@ export function LeadFormPage() {
           email: form.email,
           phoneNumber: form.phoneNumber,
           companyName: form.type === 'company' ? form.companyName : '',
-          website: form.type === 'company' ? form.website : (form.website || ''),
+          website: form.type === 'company' ? form.website : '',
           currency: form.currency,
         },
         source: form.source,
