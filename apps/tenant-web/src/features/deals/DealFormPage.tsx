@@ -68,6 +68,10 @@ export function DealFormPage() {
       if (!isEdit) {
         if (sourceType === 'lead') body.leadId = form.leadId;
         else body.customerId = form.customerId;
+      } else {
+        body.expectedCloseDate = form.expectedCloseDate ? new Date(form.expectedCloseDate).toISOString() : null;
+        body.productsOfInterest = form.productsOfInterest;
+        body.notes = form.notes;
       }
 
       return isEdit ? updateDeal(id!, body) : createDeal(body);
