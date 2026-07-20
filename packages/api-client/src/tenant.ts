@@ -99,9 +99,9 @@ export async function tenantFetch<T = unknown>(
 // `{success, invoice}`, `{success, invoices, totalDocs, ...}`). These helpers
 // translate that into the shape the UI components expect.
 
-type RawResponse = Record<string, unknown>;
+export type RawResponse = Record<string, unknown>;
 
-function one<T>(key: string) {
+export function one<T>(key: string) {
   return (res: RawResponse): { success: boolean; message?: string; data: T } => ({
     success: (res.success as boolean) ?? true,
     message: res.message as string | undefined,
@@ -109,7 +109,7 @@ function one<T>(key: string) {
   });
 }
 
-function many<T>(key: string, limit: number) {
+export function many<T>(key: string, limit: number) {
   return (res: RawResponse): PaginatedResponse<T> => ({
     success: (res.success as boolean) ?? true,
     message: res.message as string | undefined,
@@ -145,7 +145,7 @@ export const getSubscription = () => tenantFetch<{ success: boolean; subscriptio
 
 export interface ListParams { page?: number; limit?: number; from?: string; to?: string; status?: string; [key: string]: unknown; }
 
-const qs = (p: Record<string, unknown>) => new URLSearchParams(
+export const qs = (p: Record<string, unknown>) => new URLSearchParams(
   Object.fromEntries(Object.entries(p).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))
 ).toString();
 
