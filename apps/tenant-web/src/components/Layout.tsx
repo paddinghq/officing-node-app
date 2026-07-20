@@ -24,10 +24,19 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/notifications', label: 'Notifications', icon: '🔔' },
 ];
 
+const CRM_NAV_ITEMS: NavItem[] = [
+  { to: '/crm', label: 'CRM Dashboard', icon: '🧲' },
+  { to: '/leads', label: 'Leads', icon: '🧑‍💼' },
+  { to: '/prospects', label: 'Prospects', icon: '🎯' },
+  { to: '/deals', label: 'Deals', icon: '🤝' },
+  { to: '/crm-settings', label: 'CRM Settings', icon: '🛠️' },
+];
+
 export function Layout() {
-  const { user, tenantName, logoUrl, logout } = useAuthStore();
+  const { user, tenantName, logoUrl, logout, subscription } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+  const hasCrm = !subscription || ['standard', 'premium'].includes(subscription.plan);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -64,6 +73,28 @@ export function Layout() {
               {!collapsed && <span>{item.label}</span>}
             </NavLink>
           ))}
+
+          {hasCrm && (
+            <>
+              {!collapsed && <p className="px-4 pt-4 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">CRM</p>}
+              {CRM_NAV_ITEMS.map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors
+                    ${isActive
+                      ? 'bg-[var(--brand-primary)] text-white'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`
+                  }
+                  title={collapsed ? item.label : undefined}
+                >
+                  <span className="text-lg shrink-0">{item.icon}</span>
+                  {!collapsed && <span>{item.label}</span>}
+                </NavLink>
+              ))}
+            </>
+          )}
         </nav>
 
         {/* User */}

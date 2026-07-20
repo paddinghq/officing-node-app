@@ -36,6 +36,18 @@ import { SecurityPage } from './features/security/SecurityPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { SubscriptionPage } from './features/subscription/SubscriptionPage';
 
+// CRM
+import { CrmDashboardPage } from './features/crm-dashboard/CrmDashboardPage';
+import { LeadListPage } from './features/leads/LeadListPage';
+import { LeadFormPage } from './features/leads/LeadFormPage';
+import { LeadDetailPage } from './features/leads/LeadDetailPage';
+import { ProspectListPage } from './features/prospects/ProspectListPage';
+import { DealListPage } from './features/deals/DealListPage';
+import { DealBoardPage } from './features/deals/DealBoardPage';
+import { DealFormPage } from './features/deals/DealFormPage';
+import { DealDetailPage } from './features/deals/DealDetailPage';
+import { CrmSettingsPage } from './features/crm-settings/CrmSettingsPage';
+
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   if (!isAuthenticated) return <Navigate to="/login" replace />;
@@ -103,6 +115,21 @@ export default function App() {
           <Route path="/security" element={<SecurityPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
+
+          {/* CRM */}
+          <Route path="/crm" element={<CrmDashboardPage />} />
+          <Route path="/leads" element={<LeadListPage />} />
+          <Route path="/leads/new" element={<LeadFormPage />} />
+          <Route path="/leads/:id" element={<LeadDetailPage />} />
+          <Route path="/leads/:id/edit" element={<LeadFormPage />} />
+          <Route path="/prospects" element={<ProspectListPage />} />
+          <Route path="/prospects/:id" element={<LeadDetailPage />} />
+          <Route path="/deals" element={<DealListPage />} />
+          <Route path="/deals/board" element={<DealBoardPage />} />
+          <Route path="/deals/new" element={<DealFormPage />} />
+          <Route path="/deals/:id" element={<DealDetailPage />} />
+          <Route path="/deals/:id/edit" element={<DealFormPage />} />
+          <Route path="/crm-settings" element={<CrmSettingsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" />} />
