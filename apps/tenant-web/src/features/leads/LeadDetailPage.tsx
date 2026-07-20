@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getLead, qualifyLead, disqualifyLead, dropLead, convertLead, deleteLead } from '@officing/api-client';
@@ -14,6 +14,8 @@ import { ActivityTimeline } from '../../components/crm/ActivityTimeline';
 export function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/prospects') ? '/prospects' : '/leads';
   const qc = useQueryClient();
   const [qualifyOpen, setQualifyOpen] = useState(false);
   const [disqualifyOpen, setDisqualifyOpen] = useState(false);
@@ -55,7 +57,7 @@ export function LeadDetailPage() {
 
   const deleteMut = useMutation({
     mutationFn: () => deleteLead(id!),
-    onSuccess: () => { toast.success('Lead deleted'); navigate('/leads'); },
+    onSuccess: () => { toast.success('Lead deleted'); qc.invalidateQueries({ queryKey: ['crm-leads'] }); qc.invalidateQueries({ queryKey: ['crm-prospects'] }); navigate(basePath); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -70,7 +72,7 @@ export function LeadDetailPage() {
           <h2 className="text-xl font-semibold">{lead.contact.firstName} {lead.contact.lastName}</h2>
         </div>
         <div className="flex gap-2">
-          <Link to={`/leads/${id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
+          <Link to={`${basePath}/${id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>
           <Button variant="danger" size="sm" onClick={() => { if (confirm('Delete this lead?')) deleteMut.mutate(); }}>Delete</Button>
         </div>
       </div>
