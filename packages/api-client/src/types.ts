@@ -327,3 +327,219 @@ export interface AdminUser {
   lastName: string;
   role: 'superadmin' | 'support';
 }
+
+// ─── CRM – Shared ────────────────────────────────────────────────────────────
+
+export interface Contact {
+  companyName?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  website?: string;
+  currency: string;
+  type: 'individual' | 'company';
+}
+
+export interface UserRef {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+// ─── CRM – Leads ─────────────────────────────────────────────────────────────
+
+export type LeadSource = 'website' | 'referral' | 'cold_call' | 'social' | 'event' | 'import' | 'other';
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'disqualified';
+
+export interface LeadQualification {
+  score?: number;
+  notes?: string;
+  qualifiedAt?: string;
+}
+
+export interface LeadAddress {
+  contactName?: string;
+  phoneNumber?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+}
+
+export interface Lead {
+  _id: string;
+  contact: Contact;
+  address?: LeadAddress;
+  source: LeadSource;
+  status: LeadStatus;
+  disqualifiedReason?: string;
+  droppedReason?: string;
+  qualification?: LeadQualification;
+  nextFollowUpAt?: string;
+  expectedInterest?: string;
+  assignedTo?: string | UserRef;
+  tags: string[];
+  convertedCustomerId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface LeadDuplicateWarning {
+  field: 'email' | 'phone';
+  value: string;
+  existingLeadId: string;
+}
+
+// ─── CRM – Deals ─────────────────────────────────────────────────────────────
+
+export type DealStatus = 'open' | 'won' | 'lost';
+
+export interface DealValue {
+  amount: number;
+  currency: string;
+  exchangeRateToBase?: number;
+}
+
+export interface DealStageHistoryEntry {
+  stage: string;
+  enteredAt: string;
+  changedBy: string;
+}
+
+export interface DealAttachment {
+  url: string;
+  publicId?: string;
+  filename?: string;
+}
+
+export interface Deal {
+  _id: string;
+  title: string;
+  leadId?: string | Lead;
+  customerId?: string | Customer;
+  value: DealValue;
+  stage: string;
+  probability: number;
+  expectedCloseDate?: string;
+  status: DealStatus;
+  lostReason?: string;
+  wonAt?: string;
+  lostAt?: string;
+  stageHistory: DealStageHistoryEntry[];
+  assignedTo: string | UserRef;
+  productsOfInterest?: string;
+  notes?: string;
+  attachments: DealAttachment[];
+  lastActivityAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+  /** Only present in the POST /crm/deals/:id/win response. */
+  prefill?: Record<string, unknown>;
+  estimate?: { _id: string } | null;
+  invoice?: { _id: string } | null;
+}
+
+export interface DealBoardGroup {
+  stage: string;
+  label: string;
+  deals: Deal[];
+  totalValue: number;
+  count: number;
+}
+
+// ─── CRM – Activities ────────────────────────────────────────────────────────
+
+export type ActivityType = 'note' | 'call' | 'email' | 'meeting' | 'task' | 'status_change';
+export type ActivityRelatedKind = 'lead' | 'deal' | 'customer';
+
+export interface Activity {
+  _id: string;
+  type: ActivityType;
+  relatedTo: { kind: ActivityRelatedKind; id: string };
+  body: string;
+  dueAt?: string;
+  completedAt?: string;
+  assignedTo?: string | UserRef;
+  metadata?: Record<string, unknown>;
+  createdBy?: string | UserRef;
+  createdAt: string;
+}
+
+// ─── CRM – Settings ──────────────────────────────────────────────────────────
+
+export interface PipelineStage {
+  key: string;
+  label: string;
+  order: number;
+  defaultProbability: number;
+  color?: string;
+  isTerminal?: boolean;
+}
+
+export interface RevenueTarget {
+  amount: number;
+  currency: string;
+  period: 'monthly' | 'quarterly';
+}
+
+export interface CrmSettings {
+  pipelineStages: PipelineStage[];
+  dealRottenAfterDays: number;
+  baseCurrency: string;
+  revenueTarget?: RevenueTarget | null;
+  captureApiKey?: string;
+}
+
+// ─── CRM – KPIs ──────────────────────────────────────────────────────────────
+
+export interface KpiSummary {
+  period: { from: string; to: string };
+  baseCurrency: string;
+  leadsCreated: number;
+  leadsBySource: { _id: string; count: number }[];
+  leadToProspectRate: number;
+  prospectToDealRate: number;
+  winRate: number;
+  revenueWon: number;
+  lostValue: number;
+  pipelineValue: number;
+  weightedPipeline: number;
+  averageDealSize: number;
+  openDealsCount: number;
+  rottingDealsCount: number;
+  followUpsDueCount: number;
+  overdueTasksCount: number;
+  revenueTarget: RevenueTarget | null;
+  comparison: {
+    previousRevenueWon: number;
+    revenueChange: number;
+    revenueChangePercent: number | null;
+  } | null;
+}
+
+export interface KpiFunnel {
+  stages: { key: string; label: string; count: number }[];
+}
+
+export interface KpiPipeline {
+  byStage: { _id: string; count: number; totalValue: number; weightedValue: number }[];
+  topLossReasons: { _id: string; count: number }[];
+}
+
+export interface KpiLeaderboardEntry {
+  userId: string;
+  name: string;
+  email?: string;
+  dealsWon: number;
+  revenue: number;
+  leadsHandled: number;
+}
+
+export interface KpiLeaderboard {
+  entries: KpiLeaderboardEntry[];
+  baseCurrency: string;
+}
