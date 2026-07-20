@@ -7,8 +7,11 @@ import { Button } from '../../components/ui/Button';
 import { Pagination } from '../../components/ui/Pagination';
 import { Input } from '../../components/ui/Input';
 import { ReasonModal } from '../../components/crm/ReasonModal';
+import { useAuthStore } from '../../store/auth';
 
 export function ProspectListPage() {
+  const subscription = useAuthStore(s => s.subscription);
+  const hasCrm = !subscription || ['standard', 'premium'].includes(subscription.plan);
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [q, setQ] = useState('');
@@ -17,6 +20,7 @@ export function ProspectListPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['crm-prospects', page, q],
     queryFn: () => listLeads({ page, limit: 20, status: 'qualified', q: q || undefined }),
+    enabled: hasCrm,
   });
 
   function invalidate() {
@@ -34,6 +38,18 @@ export function ProspectListPage() {
     onSuccess: () => { toast.success('Prospect dropped'); setDropTarget(null); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (!hasCrm) {
+    return (
+      <div className="p-8">
+        <h2 className="text-xl font-semibold mb-4">Prospects</h2>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
+          <p className="text-yellow-800 font-medium">CRM is available on Standard plan and above.</p>
+          <a href="mailto:support@officing.app" className="text-[var(--brand-primary)] underline text-sm mt-2 inline-block">Contact support to upgrade</a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 space-y-4">

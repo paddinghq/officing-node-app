@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { createLead, updateLead, getLead, listUsers } from '@officing/api-client';
@@ -21,6 +21,8 @@ export function LeadFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/prospects') ? '/prospects' : '/leads';
   const qc = useQueryClient();
 
   const [form, setForm] = useState({
@@ -78,7 +80,8 @@ export function LeadFormPage() {
     onSuccess: () => {
       toast.success(isEdit ? 'Lead updated' : 'Lead created');
       qc.invalidateQueries({ queryKey: ['crm-leads'] });
-      navigate('/leads');
+      qc.invalidateQueries({ queryKey: ['crm-prospects'] });
+      navigate(basePath);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -136,7 +139,7 @@ export function LeadFormPage() {
 
         <div className="flex gap-3">
           <Button type="submit" loading={mutation.isPending}>{isEdit ? 'Update Lead' : 'Create Lead'}</Button>
-          <Button type="button" variant="secondary" onClick={() => navigate('/leads')}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={() => navigate(basePath)}>Cancel</Button>
         </div>
       </form>
     </div>

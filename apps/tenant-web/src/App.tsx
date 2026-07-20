@@ -124,6 +124,7 @@ export default function App() {
           <Route path="/leads/:id/edit" element={<LeadFormPage />} />
           <Route path="/prospects" element={<ProspectListPage />} />
           <Route path="/prospects/:id" element={<LeadDetailPage />} />
+          <Route path="/prospects/:id/edit" element={<LeadFormPage />} />
           <Route path="/deals" element={<DealListPage />} />
           <Route path="/deals/board" element={<DealBoardPage />} />
           <Route path="/deals/new" element={<DealFormPage />} />

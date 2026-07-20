@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { getKpiSummary, getKpiFunnel, getKpiPipeline, getKpiLeaderboard } from '@officing/api-client';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { useAuthStore } from '../../store/auth';
 
 function fmt(n: number) {
   return new Intl.NumberFormat('en', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
@@ -17,6 +18,8 @@ function yearStart() { const d = new Date(); d.setMonth(0, 1); return d.toISOStr
 type Period = 'month' | 'quarter' | 'year' | 'custom';
 
 export function CrmDashboardPage() {
+  const subscription = useAuthStore(s => s.subscription);
+  const hasCrm = !subscription || ['standard', 'premium'].includes(subscription.plan);
   const [period, setPeriod] = useState<Period>('month');
   const [customFrom, setCustomFrom] = useState(monthStart());
   const [customTo, setCustomTo] = useState(today());
@@ -25,9 +28,9 @@ export function CrmDashboardPage() {
   const from = period === 'month' ? monthStart() : period === 'quarter' ? quarterStart() : period === 'year' ? yearStart() : customFrom;
   const to = period === 'custom' ? customTo : today();
 
-  const summaryQuery = useQuery({ queryKey: ['crm-kpi-summary', from, to, compare], queryFn: () => getKpiSummary(from, to, compare) });
-  const funnelQuery = useQuery({ queryKey: ['crm-kpi-funnel', from, to], queryFn: () => getKpiFunnel(from, to) });
-  const pipelineQuery = useQuery({ queryKey: ['crm-kpi-pipeline'], queryFn: getKpiPipeline });
+  const summaryQuery = useQuery({ queryKey: ['crm-kpi-summary', from, to, compare], queryFn: () => getKpiSummary(from, to, compare), enabled: hasCrm });
+  const funnelQuery = useQuery({ queryKey: ['crm-kpi-funnel', from, to], queryFn: () => getKpiFunnel(from, to), enabled: hasCrm });
+  const pipelineQuery = useQuery({ queryKey: ['crm-kpi-pipeline'], queryFn: getKpiPipeline, enabled: hasCrm });
   const leaderboardQuery = useQuery({
     queryKey: ['crm-kpi-leaderboard', from, to],
     queryFn: async () => {
@@ -38,7 +41,20 @@ export function CrmDashboardPage() {
         throw e;
       }
     },
+    enabled: hasCrm,
   });
+
+  if (!hasCrm) {
+    return (
+      <div className="p-8">
+        <h2 className="text-xl font-semibold mb-4">CRM Dashboard</h2>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
+          <p className="text-yellow-800 font-medium">CRM is available on Standard plan and above.</p>
+          <a href="mailto:support@officing.app" className="text-[var(--brand-primary)] underline text-sm mt-2 inline-block">Contact support to upgrade</a>
+        </div>
+      </div>
+    );
+  }
 
   const summary = summaryQuery.data?.data;
   const funnel = funnelQuery.data?.data;

@@ -4,16 +4,19 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getDealsBoard, changeDealStage } from '@officing/api-client';
 import { Button } from '../../components/ui/Button';
+import { useAuthStore } from '../../store/auth';
 
 function fmt(n: number) {
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
 }
 
 export function DealBoardPage() {
+  const subscription = useAuthStore(s => s.subscription);
+  const hasCrm = !subscription || ['standard', 'premium'].includes(subscription.plan);
   const qc = useQueryClient();
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({ queryKey: ['crm-deals-board'], queryFn: getDealsBoard });
+  const { data, isLoading } = useQuery({ queryKey: ['crm-deals-board'], queryFn: getDealsBoard, enabled: hasCrm });
 
   const stageMutation = useMutation({
     mutationFn: ({ dealId, stage }: { dealId: string; stage: string }) => changeDealStage(dealId, stage),
@@ -26,6 +29,18 @@ export function DealBoardPage() {
     setDragOverStage(null);
     const dealId = e.dataTransfer.getData('text/plain');
     if (dealId) stageMutation.mutate({ dealId, stage });
+  }
+
+  if (!hasCrm) {
+    return (
+      <div className="p-8">
+        <h2 className="text-xl font-semibold mb-4">Deals — Board</h2>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
+          <p className="text-yellow-800 font-medium">CRM is available on Standard plan and above.</p>
+          <a href="mailto:support@officing.app" className="text-[var(--brand-primary)] underline text-sm mt-2 inline-block">Contact support to upgrade</a>
+        </div>
+      </div>
+    );
   }
 
   if (isLoading) return <div className="p-8 text-gray-400">Loading board…</div>;

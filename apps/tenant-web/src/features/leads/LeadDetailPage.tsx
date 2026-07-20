@@ -29,6 +29,7 @@ export function LeadDetailPage() {
   function invalidate() {
     qc.invalidateQueries({ queryKey: ['crm-lead', id] });
     qc.invalidateQueries({ queryKey: ['crm-leads'] });
+    qc.invalidateQueries({ queryKey: ['crm-prospects'] });
   }
 
   const qualifyMut = useMutation({

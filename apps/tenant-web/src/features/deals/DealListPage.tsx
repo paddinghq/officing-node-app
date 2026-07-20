@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Pagination } from '../../components/ui/Pagination';
 import { Select } from '../../components/ui/Select';
+import { useAuthStore } from '../../store/auth';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -20,6 +21,8 @@ function fmt(n: number) {
 }
 
 export function DealListPage() {
+  const subscription = useAuthStore(s => s.subscription);
+  const hasCrm = !subscription || ['standard', 'premium'].includes(subscription.plan);
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
@@ -27,6 +30,7 @@ export function DealListPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['crm-deals', page, status],
     queryFn: () => listDeals({ page, limit: 20, status: status || undefined }),
+    enabled: hasCrm,
   });
 
   const deleteMut = useMutation({
@@ -34,6 +38,18 @@ export function DealListPage() {
     onSuccess: () => { toast.success('Deal deleted'); qc.invalidateQueries({ queryKey: ['crm-deals'] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (!hasCrm) {
+    return (
+      <div className="p-8">
+        <h2 className="text-xl font-semibold mb-4">Deals</h2>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
+          <p className="text-yellow-800 font-medium">CRM is available on Standard plan and above.</p>
+          <a href="mailto:support@officing.app" className="text-[var(--brand-primary)] underline text-sm mt-2 inline-block">Contact support to upgrade</a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 space-y-4">
