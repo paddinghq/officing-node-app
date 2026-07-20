@@ -112,7 +112,7 @@ export function ActivityTimeline({ kind, id }: Props) {
               <Button
                 variant="ghost"
                 size="sm"
-                loading={completeMutation.isPending}
+                loading={completeMutation.isPending && completeMutation.variables === a._id}
                 onClick={() => completeMutation.mutate(a._id)}
               >
                 Complete
