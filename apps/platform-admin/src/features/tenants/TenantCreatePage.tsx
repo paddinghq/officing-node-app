@@ -17,7 +17,7 @@ export function TenantCreatePage() {
     onSuccess: (res) => {
       toast.success('Tenant created');
       qc.invalidateQueries({ queryKey: ['admin-tenants'] });
-      navigate(`/admin/tenants/${res.data?.slug ?? ''}`);
+      navigate(`/admin/tenants/${res.tenant?.slug ?? ''}`);
     },
     onError: (e: Error) => toast.error(e.message),
   });

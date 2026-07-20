@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { createInvoice, updateInvoice, getInvoice, listCustomers } from '@officing/api-client';
-import type { LineItem } from '@officing/api-client';
+import { createInvoice, updateInvoice, getInvoice, listCustomers, listAssets } from '@officing/api-client';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
-import { LineItemsEditor } from './LineItemsEditor';
+import { InventoryEditor, computeInventoryPayload, type InventoryState } from './InventoryEditor';
 
 export function InvoiceFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,7 +20,7 @@ export function InvoiceFormPage() {
     dueDate: '',
     currency: 'NGN',
   });
-  const [items, setItems] = useState<LineItem[]>([{ name: '', quantity: 1, rate: 0 }]);
+  const [inventoryState, setInventoryState] = useState<InventoryState>({ items: [{ asset: '', quantity: 1 }], shipping: 0, discount: 0 });
   const [image, setImage] = useState<File | null>(null);
 
   const { data: inv } = useQuery({
@@ -35,6 +34,12 @@ export function InvoiceFormPage() {
     queryFn: () => listCustomers({ limit: 200 }),
   });
 
+  const { data: assetsRes } = useQuery({
+    queryKey: ['assets-select'],
+    queryFn: () => listAssets({ limit: 200 }),
+  });
+  const assets = assetsRes?.docs ?? [];
+
   useEffect(() => {
     if (inv?.data) {
       const d = inv.data;
@@ -43,24 +48,39 @@ export function InvoiceFormPage() {
         dueDate: d.dueDate?.slice(0, 10) ?? '',
         currency: d.currency ?? 'NGN',
       });
-      if (d.inventory?.items) setItems(d.inventory.items);
+      if (d.inventory?.items) {
+        setInventoryState({
+          items: d.inventory.items.map(it => ({
+            asset: typeof it.asset === 'object' ? it.asset._id : it.asset,
+            quantity: it.quantity,
+          })),
+          shipping: d.inventory.shipping ?? 0,
+          discount: d.inventory.discount ?? 0,
+        });
+      }
     }
   }, [inv]);
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const inventory = computeInventoryPayload(inventoryState, assets);
       const body = {
         customer: form.customer,
         dueDate: form.dueDate,
         currency: form.currency,
-        inventory: { items },
+        inventory,
       };
       if (image) {
         const fd = new FormData();
         fd.append('customer', form.customer);
         fd.append('dueDate', form.dueDate);
         fd.append('currency', form.currency);
-        fd.append('inventory[items]', JSON.stringify(items));
+        fd.append('inventory[items]', JSON.stringify(inventory.items));
+        fd.append('inventory[taxRate]', String(inventory.taxRate));
+        fd.append('inventory[shipping]', String(inventory.shipping));
+        fd.append('inventory[discount]', String(inventory.discount));
+        fd.append('inventory[subtotal]', String(inventory.subtotal));
+        fd.append('inventory[total]', String(inventory.total));
         fd.append('inventory[inventoryImage]', image);
         return isEdit ? updateInvoice(id!, body) : createInvoice(fd);
       }
@@ -117,7 +137,7 @@ export function InvoiceFormPage() {
         </Card>
 
         <Card title="Line Items">
-          <LineItemsEditor items={items} onChange={setItems} />
+          <InventoryEditor assets={assets} state={inventoryState} onChange={setInventoryState} />
         </Card>
 
         <Card title="Attachment (optional)">

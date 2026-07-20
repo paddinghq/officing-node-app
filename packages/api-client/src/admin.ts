@@ -74,7 +74,7 @@ export const getTenant = (slug: string) =>
   adminFetch<{ success: boolean; tenant: Tenant }>(`/tenants/${slug}`);
 
 export const createTenant = (body: Record<string, unknown>) =>
-  adminFetch<{ success: boolean; data: Tenant }>('/tenants', { method: 'POST', body: JSON.stringify(body) });
+  adminFetch<{ success: boolean; tenant: Tenant }>('/tenants', { method: 'POST', body: JSON.stringify(body) });
 
 export const updateTenant = (slug: string, body: Record<string, unknown>) =>
   adminFetch<ApiResponse>(`/tenants/${slug}`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -101,13 +101,13 @@ export const provisionMasterAdmin = (slug: string, body: {
 }) => adminFetch<ApiResponse & { temporaryPassword?: string }>(`/tenants/${slug}/master-admin`, { method: 'POST', body: JSON.stringify(body) });
 
 // Per-tenant read
-export const getTenantStats = (slug: string) => adminFetch<{ success: boolean; data: Record<string, unknown> }>(`/tenants/${slug}/stats`);
+export const getTenantStats = (slug: string) => adminFetch<{ success: boolean; stats: Record<string, unknown> }>(`/tenants/${slug}/stats`);
 export const getTenantUsers = (slug: string, p: { page?: number; limit?: number } = {}) =>
-  adminFetch<AdminListResponse<Record<string, unknown>>>(`/tenants/${slug}/users?${qs(p)}`);
+  adminFetch<{ success: boolean; users: Record<string, unknown>[]; total: number; page: number; limit: number }>(`/tenants/${slug}/users?${qs(p)}`);
 export const getTenantAuditLogs = (slug: string, p: { page?: number; limit?: number } = {}) =>
-  adminFetch<AdminListResponse<AuditLog>>(`/tenants/${slug}/audit-logs?${qs(p)}`);
-export const getTenantHealth = (slug: string) => adminFetch<{ success: boolean; data: Record<string, unknown> }>(`/tenants/${slug}/health`);
+  adminFetch<{ success: boolean; docs: AuditLog[]; total: number }>(`/tenants/${slug}/audit-logs?${qs(p)}`);
+export const getTenantHealth = (slug: string) => adminFetch<{ success: boolean; health: Record<string, unknown> }>(`/tenants/${slug}/health`);
 
 // Platform audit logs
 export const listAuditLogs = (p: { page?: number; limit?: number; tenantSlug?: string } = {}) =>
-  adminFetch<AdminListResponse<AuditLog>>(`/audit-logs?${qs(p)}`);
+  adminFetch<{ success: boolean; docs: AuditLog[]; total: number }>(`/audit-logs?${qs(p)}`);

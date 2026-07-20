@@ -94,7 +94,7 @@ export function InvoiceDetailPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {['Description', 'Qty', 'Rate', 'Amount'].map(h => (
+                  {['Item', 'Qty', 'Amount'].map(h => (
                     <th key={h} className="px-3 py-2 text-left font-medium text-gray-600">{h}</th>
                   ))}
                 </tr>
@@ -102,10 +102,9 @@ export function InvoiceDetailPage() {
               <tbody>
                 {inv.inventory.items.map((item, i) => (
                   <tr key={i} className="border-t">
-                    <td className="px-3 py-2">{item.name}</td>
+                    <td className="px-3 py-2">{typeof item.asset === 'object' ? item.asset.name : item.asset}</td>
                     <td className="px-3 py-2">{item.quantity}</td>
-                    <td className="px-3 py-2">{item.rate?.toLocaleString()}</td>
-                    <td className="px-3 py-2">{((item.quantity || 0) * (item.rate || 0)).toLocaleString()}</td>
+                    <td className="px-3 py-2">{item.amount?.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

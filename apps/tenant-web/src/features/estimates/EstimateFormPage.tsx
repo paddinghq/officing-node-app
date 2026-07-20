@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { createEstimate, updateEstimate, getEstimate, listCustomers } from '@officing/api-client';
-import type { LineItem } from '@officing/api-client';
+import { createEstimate, updateEstimate, getEstimate, listCustomers, listAssets } from '@officing/api-client';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
-import { LineItemsEditor } from '../invoices/LineItemsEditor';
+import { InventoryEditor, computeInventoryPayload, type InventoryState } from '../invoices/InventoryEditor';
 
 export function EstimateFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,19 +15,31 @@ export function EstimateFormPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [form, setForm] = useState({ customer: '', expiryDate: '' });
-  const [items, setItems] = useState<LineItem[]>([{ name: '', quantity: 1, rate: 0 }]);
+  const [inventoryState, setInventoryState] = useState<InventoryState>({ items: [{ asset: '', quantity: 1 }], shipping: 0, discount: 0 });
   const { data: est } = useQuery({ queryKey: ['estimate', id], queryFn: () => getEstimate(id!), enabled: isEdit });
   const { data: customers } = useQuery({ queryKey: ['customers-select'], queryFn: () => listCustomers({ limit: 200 }) });
+  const { data: assetsRes } = useQuery({ queryKey: ['assets-select'], queryFn: () => listAssets({ limit: 200 }) });
+  const assets = assetsRes?.docs ?? [];
   useEffect(() => {
     if (est?.data) {
       const d = est.data;
       setForm({ customer: typeof d.customer === 'object' ? d.customer._id : (d.customer ?? ''), expiryDate: d.expiryDate?.slice(0, 10) ?? '' });
-      if (d.inventory?.items) setItems(d.inventory.items);
+      if (d.inventory?.items) {
+        setInventoryState({
+          items: d.inventory.items.map(it => ({
+            asset: typeof it.asset === 'object' ? it.asset._id : it.asset,
+            quantity: it.quantity,
+          })),
+          shipping: d.inventory.shipping ?? 0,
+          discount: d.inventory.discount ?? 0,
+        });
+      }
     }
   }, [est]);
   const mutation = useMutation({
     mutationFn: () => {
-      const body = { customer: form.customer, expiryDate: form.expiryDate, inventory: { items } };
+      const inventory = computeInventoryPayload(inventoryState, assets);
+      const body = { customer: form.customer, expiryDate: form.expiryDate, inventory };
       return isEdit ? updateEstimate(id!, body) : createEstimate(body);
     },
     onSuccess: () => { toast.success(isEdit ? 'Updated' : 'Created'); qc.invalidateQueries({ queryKey: ['estimates'] }); navigate('/estimates'); },
@@ -45,7 +56,7 @@ export function EstimateFormPage() {
             <Input label="Expiry Date" type="date" value={form.expiryDate} onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value }))} />
           </div>
         </Card>
-        <Card title="Line Items"><LineItemsEditor items={items} onChange={setItems} /></Card>
+        <Card title="Line Items"><InventoryEditor assets={assets} state={inventoryState} onChange={setInventoryState} /></Card>
         <div className="flex gap-3">
           <Button type="submit" loading={mutation.isPending}>{isEdit ? 'Update' : 'Create'}</Button>
           <Button type="button" variant="secondary" onClick={() => navigate('/estimates')}>Cancel</Button>

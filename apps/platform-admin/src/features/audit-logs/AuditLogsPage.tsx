@@ -28,8 +28,8 @@ export function AuditLogsPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>}
-            {!isLoading && !data?.tenants?.length && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No audit logs.</td></tr>}
-            {data?.tenants?.map(log => (
+            {!isLoading && !data?.docs?.length && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No audit logs.</td></tr>}
+            {data?.docs?.map(log => (
               <tr key={log._id} className="border-b last:border-0 hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium">{log.action}</td>
                 <td className="px-4 py-3 font-mono text-xs">{log.tenantSlug ?? '—'}</td>

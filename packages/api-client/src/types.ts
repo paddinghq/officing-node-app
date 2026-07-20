@@ -100,13 +100,39 @@ export interface Merchant {
   createdAt: string;
 }
 
+// ─── Finance – Assets (used as invoice/bill/estimate line item catalog) ──────
+
+export type AssetType = 'product' | 'service';
+
+export interface Asset {
+  _id: string;
+  name: string;
+  price: number;
+  taxRate: number;
+  description?: string;
+  assetType: AssetType;
+  sku?: string;
+  measuringUnit?: string;
+  isDeactivated?: boolean;
+  assetId?: string;
+}
+
 // ─── Finance – Line Items ────────────────────────────────────────────────────
 
 export interface LineItem {
-  name: string;
+  asset: string | Asset;
   quantity: number;
-  rate: number;
-  amount?: number;
+  amount: number;
+}
+
+export interface Inventory {
+  items: LineItem[];
+  taxRate: number;
+  shipping: number;
+  discount?: number;
+  subtotal: number;
+  total: number;
+  inventoryImage?: string;
 }
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled';
@@ -122,7 +148,7 @@ export interface Invoice {
   status: InvoiceStatus;
   dueDate: string;
   issueDate?: string;
-  inventory: { items: LineItem[]; inventoryImage?: string };
+  inventory: Inventory;
   total: number;
   amountPaid: number;
   amountDue: number;
@@ -155,7 +181,7 @@ export interface Bill {
   merchant: Merchant | string;
   status: BillStatus;
   dueDate: string;
-  inventory: { items: LineItem[] };
+  inventory: Inventory;
   total: number;
   amountPaid: number;
   amountDue: number;
@@ -172,7 +198,7 @@ export interface Estimate {
   customer: Customer | string;
   status: EstimateStatus;
   expiryDate?: string;
-  inventory: { items: LineItem[] };
+  inventory: Inventory;
   total: number;
   createdAt: string;
   updatedAt: string;

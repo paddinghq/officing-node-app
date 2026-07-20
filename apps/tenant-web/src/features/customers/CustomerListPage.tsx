@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { listCustomers, deleteCustomer } from '@officing/api-client';
+import { listCustomers, deactivateCustomer } from '@officing/api-client';
 import { Button } from '../../components/ui/Button';
 import { Pagination } from '../../components/ui/Pagination';
 
@@ -10,7 +10,7 @@ export function CustomerListPage() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const { data, isLoading } = useQuery({ queryKey: ['customers', page], queryFn: () => listCustomers({ page, limit: 20 }) });
-  const deleteMut = useMutation({ mutationFn: deleteCustomer, onSuccess: () => { toast.success('Deleted'); qc.invalidateQueries({ queryKey: ['customers'] }); }, onError: (e: Error) => toast.error(e.message) });
+  const deactivateMut = useMutation({ mutationFn: deactivateCustomer, onSuccess: () => { toast.success('Customer deactivated'); qc.invalidateQueries({ queryKey: ['customers'] }); }, onError: (e: Error) => toast.error(e.message) });
   return (
     <div className="p-8 space-y-4">
       <div className="flex items-center justify-between">
@@ -32,7 +32,7 @@ export function CustomerListPage() {
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <Link to={`/customers/${c._id}/edit`}><Button variant="ghost" size="sm">Edit</Button></Link>
-                    <Button variant="danger" size="sm" onClick={() => { if (confirm('Delete?')) deleteMut.mutate(c._id); }}>Del</Button>
+                    <Button variant="danger" size="sm" onClick={() => { if (confirm('Deactivate this customer?')) deactivateMut.mutate(c._id); }}>Deactivate</Button>
                   </div>
                 </td>
               </tr>
