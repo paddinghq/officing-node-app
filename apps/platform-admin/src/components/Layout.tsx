@@ -90,7 +90,7 @@ function BrandMark() {
           className="text-[10px] font-semibold uppercase tracking-widest"
           style={{ color: 'var(--muted)' }}
         >
-          Control Plane
+          Platform Admin
         </p>
       </div>
     </div>

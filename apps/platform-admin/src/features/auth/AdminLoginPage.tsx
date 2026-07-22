@@ -72,7 +72,7 @@ export function AdminLoginPage() {
             Officing
           </h1>
           <p className="mt-1.5 text-sm" style={{ color: 'var(--muted)' }}>
-            Sign in to the control plane
+            Sign in to the platform admin
           </p>
         </div>
 
