@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Modal } from '../ui/Modal';
-import { Button } from '../ui/Button';
+import { useState } from 'react';
+import { SModal } from '../ui/SModal';
+import { Btn } from '../ui/Btn';
+import { Field } from '../ui/Field';
 
 interface Props {
   open: boolean;
@@ -21,23 +22,28 @@ export function ReasonModal({ open, title, actionLabel, onClose, onSubmit, loadi
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={title}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Reason *</label>
-          <textarea
-            required
-            rows={3}
-            value={reason}
-            onChange={e => setReason(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent"
-          />
+    <SModal open={open} onClose={onClose} title={title} size="sm"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Btn variant="secondary" type="button" onClick={onClose}>Cancel</Btn>
+          <Btn variant="danger" type="submit" loading={loading}
+            onClick={() => document.getElementById('reason-form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))}
+          >
+            {actionLabel}
+          </Btn>
         </div>
-        <div className="flex gap-2 justify-end">
-          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-          <Button variant="danger" type="submit" loading={loading}>{actionLabel}</Button>
-        </div>
+      }
+    >
+      <form id="reason-form" onSubmit={handleSubmit}>
+        <Field.Textarea
+          label="Reason *"
+          required
+          rows={3}
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="Provide a reason…"
+        />
       </form>
-    </Modal>
+    </SModal>
   );
 }

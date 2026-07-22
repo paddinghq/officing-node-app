@@ -1,9 +1,8 @@
-import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from './components/Layout';
 import { useAuthStore } from './store/auth';
-import { getSubscription } from '@officing/api-client';
+import { getSubscription, getCompany } from '@officing/api-client';
 
 // Auth
 import { LoginPage } from './features/auth/LoginPage';
@@ -55,8 +54,9 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function SubscriptionLoader({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, setSubscription } = useAuthStore();
+  const { isAuthenticated, setSubscription, setBranding } = useAuthStore();
 
+  // Subscription
   useQuery({
     queryKey: ['subscription'],
     queryFn: async () => {
@@ -66,6 +66,23 @@ function SubscriptionLoader({ children }: { children: React.ReactNode }) {
     },
     enabled: isAuthenticated,
     staleTime: 60_000,
+  });
+
+  // Branding — load on every session start so colors are always current
+  useQuery({
+    queryKey: ['company-branding'],
+    queryFn: async () => {
+      const r = await getCompany();
+      const co = r.data as Record<string, unknown>;
+      setBranding({
+        primaryColor: co.primaryColor as string | undefined,
+        logoUrl:      co.logoUrl      as string | undefined,
+        name:         co.name         as string | undefined,
+      });
+      return co;
+    },
+    enabled: isAuthenticated,
+    staleTime: 5 * 60_000, // 5 min
   });
 
   return <>{children}</>;

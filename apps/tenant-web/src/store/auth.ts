@@ -16,23 +16,62 @@ interface AuthState {
   setBranding: (branding: { primaryColor?: string; logoUrl?: string; name?: string }) => void;
 }
 
+// ─── Persist / restore user object ───────────────────────────────────────────
+const USER_KEY = 'authUser';
+
+function saveUser(user: User) {
+  try { localStorage.setItem(USER_KEY, JSON.stringify(user)); } catch { /* ignore */ }
+}
+function loadUser(): User | null {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch { return null; }
+}
+function removeUser() {
+  try { localStorage.removeItem(USER_KEY); } catch { /* ignore */ }
+}
+
+// ─── Determine initial authenticated state ───────────────────────────────────
+function hasStoredSession(): boolean {
+  try {
+    return !!(
+      localStorage.getItem('accessToken') &&
+      localStorage.getItem('refreshToken')
+    );
+  } catch {
+    return false;
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isAuthenticated: false,
+  // Restore user from localStorage so the sidebar/header shows correct info
+  // after a page refresh without requiring a new API call.
+  user: hasStoredSession() ? loadUser() : null,
+  isAuthenticated: hasStoredSession(),
   subscription: null,
-  tenantSlug: localStorage.getItem('tenantSlug') ?? (import.meta.env as Record<string, string>).VITE_DEFAULT_TENANT_SLUG ?? 'officing',
+  tenantSlug:
+    localStorage.getItem('tenantSlug') ??
+    (import.meta.env as Record<string, string>).VITE_DEFAULT_TENANT_SLUG ??
+    'officing',
   primaryColor: '#6366f1',
   logoUrl: '',
   tenantName: 'Officing',
 
   login(user, accessToken, refreshToken, slug) {
-    const resolvedSlug = slug ?? user.tenantSlug ?? (import.meta.env as Record<string, string>).VITE_DEFAULT_TENANT_SLUG ?? 'officing';
+    const resolvedSlug =
+      slug ??
+      user.tenantSlug ??
+      (import.meta.env as Record<string, string>).VITE_DEFAULT_TENANT_SLUG ??
+      'officing';
     setTenantAuth(accessToken, refreshToken, resolvedSlug);
+    saveUser(user);
     set({ user, isAuthenticated: true, tenantSlug: resolvedSlug });
   },
 
   logout() {
     clearTenantAuth();
+    removeUser();
     set({ user: null, isAuthenticated: false, subscription: null });
   },
 

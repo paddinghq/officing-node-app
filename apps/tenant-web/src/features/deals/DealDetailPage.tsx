@@ -1,20 +1,33 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getDeal, deleteDeal } from '@officing/api-client';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
+import { Btn, SBadge, SCard } from '../../components/ui/index';
 import { ActivityTimeline } from '../../components/crm/ActivityTimeline';
 import { WinDealModal } from './WinDealModal';
 import { LoseDealModal } from './LoseDealModal';
+import { Spinner } from '@heroui/react';
+import { ArrowLeft, Pencil, TrashBin, Medal, CircleXmark } from '@gravity-ui/icons';
+
+const STATUS_COLOR: Record<string, 'success' | 'danger' | 'info'> = {
+  won: 'success', lost: 'danger', open: 'info',
+};
+
+function Detail({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'var(--muted)' }}>{label}</p>
+      <div className="text-sm" style={{ color: 'var(--foreground)' }}>{value}</div>
+    </div>
+  );
+}
 
 export function DealDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [winOpen, setWinOpen] = useState(false);
+  const qc       = useQueryClient();
+  const [winOpen, setWinOpen]   = useState(false);
   const [loseOpen, setLoseOpen] = useState(false);
 
   const { data, isLoading } = useQuery({ queryKey: ['crm-deal', id], queryFn: () => getDeal(id!), enabled: !!id });
@@ -26,63 +39,59 @@ export function DealDetailPage() {
     qc.invalidateQueries({ queryKey: ['crm-deals-board'] });
   }
 
-  const deleteMut = useMutation({
-    mutationFn: () => deleteDeal(id!),
-    onSuccess: () => { toast.success('Deal deleted'); navigate('/deals'); },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const deleteMut = useMutation({ mutationFn: () => deleteDeal(id!), onSuccess: () => { toast.success('Deleted'); navigate('/deals'); }, onError: (e: Error) => toast.error(e.message) });
 
-  if (isLoading) return <div className="p-8 text-gray-400">Loading…</div>;
-  if (!deal) return <div className="p-8 text-red-600">Deal not found.</div>;
+  if (isLoading) return <div className="flex items-center justify-center p-16"><Spinner /></div>;
+  if (!deal)     return <div className="p-8 text-center" style={{ color: 'var(--danger)' }}>Deal not found.</div>;
 
   return (
-    <div className="p-8 max-w-3xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <button onClick={() => navigate(-1)} className="text-sm text-gray-400 hover:text-gray-600 mb-1">← Back</button>
-          <h2 className="text-xl font-semibold">{deal.title}</h2>
+    <div className="p-5 sm:p-7 max-w-3xl space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button onClick={() => navigate(-1)} className="rounded-xl p-1.5" style={{ color: 'var(--muted)' }}><ArrowLeft width={18} height={18} /></button>
+          <h1 className="text-xl font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>{deal.title}</h1>
+          <SBadge color={STATUS_COLOR[deal.status] ?? 'neutral'}>{deal.status}</SBadge>
         </div>
-        <div className="flex gap-2">
-          {deal.status === 'open' && <Link to={`/deals/${id}/edit`}><Button variant="secondary" size="sm">Edit</Button></Link>}
-          <Button variant="danger" size="sm" onClick={() => { if (confirm('Delete this deal?')) deleteMut.mutate(); }}>Delete</Button>
+        <div className="flex flex-wrap gap-2">
+          {deal.status === 'open' && <Link to={`/deals/${id}/edit`}><Btn variant="secondary" size="sm"><Pencil width={13} height={13} /> Edit</Btn></Link>}
+          <Btn variant="danger-soft" size="sm" onClick={() => { if (confirm('Delete deal?')) deleteMut.mutate(); }}><TrashBin width={13} height={13} /></Btn>
         </div>
       </div>
 
-      <Card title="Details">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div><p className="text-gray-500">Status</p><Badge color={deal.status === 'won' ? 'green' : deal.status === 'lost' ? 'red' : 'blue'}>{deal.status}</Badge></div>
-          <div><p className="text-gray-500">Stage</p><p>{deal.stage}</p></div>
-          <div><p className="text-gray-500">Value</p><p>{deal.value.amount.toLocaleString()} {deal.value.currency}</p></div>
-          <div><p className="text-gray-500">Probability</p><p>{deal.probability}%</p></div>
-          <div><p className="text-gray-500">Assigned To</p><p>{typeof deal.assignedTo === 'object' ? `${deal.assignedTo.firstName} ${deal.assignedTo.lastName}` : '—'}</p></div>
-          {deal.expectedCloseDate && <div><p className="text-gray-500">Expected Close</p><p>{new Date(deal.expectedCloseDate).toLocaleDateString()}</p></div>}
-          {deal.productsOfInterest && <div className="col-span-2"><p className="text-gray-500">Products/Services</p><p>{deal.productsOfInterest}</p></div>}
-          {deal.notes && <div className="col-span-2"><p className="text-gray-500">Notes</p><p>{deal.notes}</p></div>}
-          {deal.lostReason && <div className="col-span-2"><p className="text-gray-500">Lost Reason</p><p>{deal.lostReason}</p></div>}
+      <SCard title="Deal details">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <Detail label="Stage"       value={deal.stage} />
+          <Detail label="Value"       value={<span className="font-bold tabular-nums">{deal.value.amount.toLocaleString()} {deal.value.currency}</span>} />
+          <Detail label="Probability" value={`${deal.probability}%`} />
+          <Detail label="Assigned to" value={typeof deal.assignedTo === 'object' ? `${deal.assignedTo.firstName} ${deal.assignedTo.lastName}` : '—'} />
+          {deal.expectedCloseDate && <Detail label="Expected close" value={new Date(deal.expectedCloseDate).toLocaleDateString()} />}
+          {deal.productsOfInterest && <Detail label="Products" value={deal.productsOfInterest} />}
+          {deal.notes && <Detail label="Notes" value={deal.notes} />}
+          {deal.lostReason && <Detail label="Lost reason" value={deal.lostReason} />}
         </div>
-      </Card>
+      </SCard>
 
-      <Card title="Stage History">
-        <table className="w-full text-sm">
-          <thead><tr className="text-left text-gray-500"><th className="pb-2">Stage</th><th className="pb-2">Entered</th></tr></thead>
-          <tbody>
-            {deal.stageHistory.map((h, i) => (
-              <tr key={i} className="border-t"><td className="py-2">{h.stage}</td><td className="py-2 text-gray-500">{new Date(h.enteredAt).toLocaleString()}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+      <SCard title="Stage history">
+        <div className="space-y-2">
+          {deal.stageHistory.map((h, i) => (
+            <div key={i} className="flex items-center justify-between py-2" style={{ borderBottom: i < deal.stageHistory.length - 1 ? '1px solid var(--separator)' : 'none' }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{h.stage}</span>
+              <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>{new Date(h.enteredAt).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </SCard>
 
       {deal.status === 'open' && (
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => setWinOpen(true)}>Win Deal</Button>
-          <Button size="sm" variant="danger" onClick={() => setLoseOpen(true)}>Lose Deal</Button>
+          <Btn size="sm" onClick={() => setWinOpen(true)}><Medal width={13} height={13} /> Win deal</Btn>
+          <Btn size="sm" variant="danger-soft" onClick={() => setLoseOpen(true)}><CircleXmark width={13} height={13} /> Lose deal</Btn>
         </div>
       )}
 
       <ActivityTimeline kind="deal" id={id!} />
 
-      <WinDealModal open={winOpen} dealId={id!} onClose={() => setWinOpen(false)} onSuccess={invalidate} />
+      <WinDealModal  open={winOpen}  dealId={id!} onClose={() => setWinOpen(false)}  onSuccess={invalidate} />
       <LoseDealModal open={loseOpen} dealId={id!} onClose={() => setLoseOpen(false)} onSuccess={invalidate} />
     </div>
   );

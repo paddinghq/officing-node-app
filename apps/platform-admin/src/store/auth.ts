@@ -11,6 +11,8 @@ interface AdminAuthState {
 
 export const useAdminStore = create<AdminAuthState>((set) => ({
   admin: null,
+  // Restore authenticated state from the persisted token so refreshes don't
+  // send operators back to /admin/login.
   isAuthenticated: !!localStorage.getItem('platformToken'),
   login(admin, token) {
     setAdminToken(token);

@@ -15,6 +15,12 @@ const API = () => getEnv('VITE_API_BASE_URL', 'https://api-staging-officing.padd
 
 let _pat: string | null = null;
 
+// ─── Optional 401 callback ────────────────────────────────────────────────────
+// The admin app registers this hook in main.tsx so the api-client can trigger
+// a logout+redirect without importing React router.
+let _on401: (() => void) | null = null;
+export function setAdminOn401(cb: () => void) { _on401 = cb; }
+
 export function setAdminToken(pat: string) {
   _pat = pat;
   localStorage.setItem('platformToken', pat);
@@ -42,9 +48,15 @@ export async function adminFetch<T = unknown>(
   const res = await fetch(`${API()}/platform/admin${path}`, { ...options, headers });
 
   if (!res.ok) {
+    // ── Auto sign-out on 401 ──────────────────────────────────────────────────
+    if (res.status === 401) {
+      clearAdminToken();
+      _on401?.();
+      throw Object.assign(new Error('Session expired — please sign in again.'), { status: 401 });
+    }
+
     const err = await res.json().catch(() => ({ message: res.statusText })) as { message?: string };
-    const error = Object.assign(new Error(err.message ?? 'Request failed'), { status: res.status });
-    throw error;
+    throw Object.assign(new Error(err.message ?? 'Request failed'), { status: res.status });
   }
 
   if (isBlob) return res.blob() as unknown as T;
@@ -101,12 +113,14 @@ export const provisionMasterAdmin = (slug: string, body: {
 }) => adminFetch<ApiResponse & { temporaryPassword?: string }>(`/tenants/${slug}/master-admin`, { method: 'POST', body: JSON.stringify(body) });
 
 // Per-tenant read
-export const getTenantStats = (slug: string) => adminFetch<{ success: boolean; stats: Record<string, unknown> }>(`/tenants/${slug}/stats`);
+export const getTenantStats = (slug: string) =>
+  adminFetch<{ success: boolean; stats: Record<string, unknown> }>(`/tenants/${slug}/stats`);
 export const getTenantUsers = (slug: string, p: { page?: number; limit?: number } = {}) =>
   adminFetch<{ success: boolean; users: Record<string, unknown>[]; total: number; page: number; limit: number }>(`/tenants/${slug}/users?${qs(p)}`);
 export const getTenantAuditLogs = (slug: string, p: { page?: number; limit?: number } = {}) =>
   adminFetch<{ success: boolean; docs: AuditLog[]; total: number }>(`/tenants/${slug}/audit-logs?${qs(p)}`);
-export const getTenantHealth = (slug: string) => adminFetch<{ success: boolean; health: Record<string, unknown> }>(`/tenants/${slug}/health`);
+export const getTenantHealth = (slug: string) =>
+  adminFetch<{ success: boolean; health: Record<string, unknown> }>(`/tenants/${slug}/health`);
 
 // Platform audit logs
 export const listAuditLogs = (p: { page?: number; limit?: number; tenantSlug?: string } = {}) =>

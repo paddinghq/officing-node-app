@@ -1,51 +1,149 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { listRoles, createRole, deleteRole } from '@officing/api-client';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Modal } from '../../components/ui/Modal';
-import { Link } from 'react-router-dom';
+import { listRoles, createRole, updateRole, deleteRole } from '@officing/api-client';
+import type { Role } from '@officing/api-client';
+import { Btn, SCard, SModal, PageShell } from '../../components/ui/index';
+import { Field } from '../../components/ui/Field';
+import { Plus, TrashBin, Pencil, ArrowLeft } from '@gravity-ui/icons';
 
 export function RolesPage() {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
+
+  // ── Create state ────────────────────────────────────────────────────────
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newName, setNewName]        = useState('');
+
+  // ── Edit state ──────────────────────────────────────────────────────────
+  const [editOpen, setEditOpen]     = useState(false);
+  const [editTarget, setEditTarget] = useState<Role | null>(null);
+  const [editName, setEditName]     = useState('');
+
   const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: listRoles });
+
   const createMut = useMutation({
-    mutationFn: () => createRole({ name, permissions: [] }),
-    onSuccess: () => { toast.success('Role created'); qc.invalidateQueries({ queryKey: ['roles'] }); setOpen(false); setName(''); },
+    mutationFn: () => createRole({ name: newName, permissions: [] }),
+    onSuccess: () => {
+      toast.success('Role created');
+      qc.invalidateQueries({ queryKey: ['roles'] });
+      setCreateOpen(false);
+      setNewName('');
+    },
     onError: (e: Error) => toast.error(e.message),
   });
-  const deleteMut = useMutation({ mutationFn: deleteRole, onSuccess: () => { toast.success('Deleted'); qc.invalidateQueries({ queryKey: ['roles'] }); }, onError: (e: Error) => toast.error(e.message) });
+
+  const editMut = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      updateRole(id, { name, permissions: [] }),
+    onSuccess: () => {
+      toast.success('Role updated');
+      qc.invalidateQueries({ queryKey: ['roles'] });
+      setEditOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: deleteRole,
+    onSuccess: () => { toast.success('Deleted'); qc.invalidateQueries({ queryKey: ['roles'] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function openEdit(role: Role) {
+    setEditTarget(role);
+    setEditName(role.name);
+    setEditOpen(true);
+  }
+
+  const allRoles = roles?.data ?? [];
 
   return (
-    <div className="p-8 space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link to="/people" className="text-gray-400 hover:text-gray-600">← People</Link>
-          <h2 className="text-xl font-semibold">Roles</h2>
-        </div>
-        <Button size="sm" onClick={() => setOpen(true)}>+ New Role</Button>
-      </div>
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        {roles?.data?.map(r => (
-          <div key={r._id} className="flex items-center justify-between px-6 py-4 border-b last:border-0">
-            <p className="font-medium">{r.name}</p>
-            <Button variant="danger" size="sm" onClick={() => { if (confirm('Delete role?')) deleteMut.mutate(r._id); }}>Delete</Button>
+    <PageShell title="Roles" subtitle="Define access roles for team members."
+      actions={
+        <>
+          <Link to="/people">
+            <Btn variant="secondary" size="sm"><ArrowLeft width={13} height={13} /> Back to People</Btn>
+          </Link>
+          <Btn size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus width={14} height={14} /> New role
+          </Btn>
+        </>
+      }
+    >
+      <SCard noPadding>
+        {allRoles.length === 0 && (
+          <p className="px-5 py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>
+            No roles created yet.
+          </p>
+        )}
+        {allRoles.map((r, i) => (
+          <div
+            key={r._id}
+            className="flex items-center justify-between px-5 py-4"
+            style={{ borderBottom: i < allRoles.length - 1 ? '1px solid var(--separator)' : 'none' }}
+          >
+            <div className="min-w-0 flex-1">
+              <p className="font-medium" style={{ color: 'var(--foreground)' }}>{r.name}</p>
+              {(r as Role & { description?: string }).description && (
+                <p className="mt-0.5 text-xs truncate" style={{ color: 'var(--muted)' }}>
+                  {(r as Role & { description?: string }).description}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-1 ml-3 shrink-0">
+              <Btn variant="ghost" size="sm" onClick={() => openEdit(r)}>
+                <Pencil width={13} height={13} />
+              </Btn>
+              <Btn variant="danger-soft" size="sm"
+                onClick={() => { if (confirm('Delete this role?')) deleteMut.mutate(r._id); }}>
+                <TrashBin width={13} height={13} />
+              </Btn>
+            </div>
           </div>
         ))}
-        {!roles?.data?.length && <p className="px-6 py-8 text-center text-gray-400">No roles.</p>}
-      </div>
-      <Modal open={open} onClose={() => setOpen(false)} title="New Role">
-        <form onSubmit={e => { e.preventDefault(); createMut.mutate(); }} className="space-y-4">
-          <Input label="Role Name *" required value={name} onChange={e => setName(e.target.value)} />
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" type="button" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" loading={createMut.isPending}>Create</Button>
+      </SCard>
+
+      {/* ── Create role modal ─────────────────────────────────────────── */}
+      <SModal open={createOpen} onClose={() => setCreateOpen(false)} title="New role" size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Btn variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Btn>
+            <Btn loading={createMut.isPending}
+              onClick={() => document.getElementById('role-form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))}>
+              Create role
+            </Btn>
           </div>
+        }
+      >
+        <form id="role-form" onSubmit={e => { e.preventDefault(); createMut.mutate(); }} className="space-y-4">
+          <Field label="Role name *" required value={newName}
+            onChange={e => setNewName(e.target.value)}
+            placeholder="e.g. Finance Manager" />
         </form>
-      </Modal>
-    </div>
+      </SModal>
+
+      {/* ── Edit role modal ───────────────────────────────────────────── */}
+      <SModal open={editOpen} onClose={() => setEditOpen(false)} title="Edit role" size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Btn variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Btn>
+            <Btn loading={editMut.isPending}
+              onClick={() => document.getElementById('edit-role-form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))}>
+              Save changes
+            </Btn>
+          </div>
+        }
+      >
+        <form id="edit-role-form"
+          onSubmit={e => { e.preventDefault(); if (editTarget) editMut.mutate({ id: editTarget._id, name: editName }); }}
+          className="space-y-4"
+        >
+          <Field label="Role name *" required value={editName}
+            onChange={e => setEditName(e.target.value)}
+            placeholder="e.g. Senior Accountant" />
+        </form>
+      </SModal>
+    </PageShell>
   );
 }
