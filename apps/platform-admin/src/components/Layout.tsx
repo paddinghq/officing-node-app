@@ -4,12 +4,11 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-  Button,
+  Button as HeroButton,
   Dropdown,
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
-  Separator,
   Tooltip,
   TooltipTrigger,
   TooltipContent,
@@ -27,6 +26,19 @@ import {
   SquareLetterT,
 } from '@gravity-ui/icons';
 import { useAdminStore } from '../store/auth';
+import type { ReactNode } from 'react';
+
+// HeroUI v3 Button doesn't expose children in its TS types — cast to avoid error
+const Button = HeroButton as unknown as React.FC<React.ComponentPropsWithRef<'button'> & {
+  variant?: string;
+  isDisabled?: boolean;
+  onPress?: () => void;
+  onClick?: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+  'aria-label'?: string;
+  children?: ReactNode;
+}>;
 
 const NAV = [
   { to: '/admin/overview', label: 'Overview', Icon: ChartColumn },
@@ -98,7 +110,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
               to={to}
               onClick={onNavigate}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
-              style={({ isActive: a }) => ({
+              style={({ isActive: a }: { isActive: boolean }) => ({
                 background: a ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
                 color: a ? 'var(--accent)' : 'var(--muted)',
               })}
@@ -174,7 +186,7 @@ export function Layout() {
           <NavList onNavigate={() => setIsMobileMenuOpen(false)} />
         </nav>
 
-        <Separator style={{ background: 'var(--separator)' }} />
+        <div className="h-px mx-3" style={{ background: 'var(--separator)' }} />
 
         {/* User */}
         <div className="p-3">

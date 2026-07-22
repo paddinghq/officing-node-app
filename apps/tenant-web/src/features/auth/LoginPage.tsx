@@ -3,8 +3,19 @@ import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { signIn, getCompany, getSubscription, getTenantSlug } from '@officing/api-client';
 import { useAuthStore } from '../../store/auth';
-import { Button, Spinner } from '@heroui/react';
+import { Button as HeroButton, Spinner } from '@heroui/react';
 import { Envelope, Eye, EyeSlash, SquareLetterT } from '@gravity-ui/icons';
+import type { ReactNode } from 'react';
+
+// HeroUI v3 Button doesn't expose children in its TS types — cast to avoid error
+const Button = HeroButton as unknown as React.FC<React.ComponentPropsWithRef<'button'> & {
+  variant?: string;
+  isDisabled?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  type?: string;
+  children?: ReactNode;
+}>;
 
 export function LoginPage() {
   const navigate = useNavigate();

@@ -87,7 +87,11 @@ export function UsersPage() {
 
   const entries: UserEntry[] = usersRes?.data ?? [];
 
-  function renderCell(entry: UserEntry, key: string) {
+  // DataTable requires T extends { _id: string } — attach _id from user object
+  const rows = entries.map(e => ({ ...e, _id: e.user._id }));
+  type Row = (typeof rows)[number];
+
+  function renderCell(entry: Row, key: string) {
     const u = entry.user;
     switch (key) {
       case 'name':   return <span className="font-medium">{u.firstName} {u.lastName}</span>;
@@ -134,7 +138,7 @@ export function UsersPage() {
         </>
       }
     >
-      <DataTable columns={COLS} rows={entries} renderCell={renderCell} emptyMessage="No users found." />
+      <DataTable columns={COLS} rows={rows} renderCell={renderCell} emptyMessage="No users found." />
 
       {/* ── Invite modal ─────────────────────────────────────────────── */}
       <SModal open={inviteOpen} onClose={() => setInviteOpen(false)} title="Invite user" size="sm"

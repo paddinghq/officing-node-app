@@ -139,6 +139,7 @@ export interface Merchant {
   firstName?: string;
   lastName?: string;
   email?: string;
+  phoneNumber?: string;
   isDeactivated?: boolean;
   createdAt: string;
 }

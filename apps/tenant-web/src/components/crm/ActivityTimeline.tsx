@@ -26,7 +26,7 @@ function ActivityIcon({ type }: { type: ActivityType }) {
     note: Comment, call: Smartphone, email: Envelope, meeting: Calendar,
     task: SquareCheck, status_change: ArrowsRotateLeft,
   };
-  const Icon = ICO[type] ?? StickyNote;
+  const Icon = ICO[type] ?? Comment;
   return (
     <div
       className="shrink-0 rounded-xl p-2 mt-0.5"

@@ -2,8 +2,22 @@
  * Btn — brand-aware button built on HeroUI <Button>.
  * Variant "brand" uses CSS var(--brand-primary) automatically.
  */
-import { Button, Spinner } from '@heroui/react';
+import { Button as HeroButton, Spinner } from '@heroui/react';
 import type { ReactNode } from 'react';
+
+// HeroUI v3 ButtonRootProps doesn't include `children` in its TypeScript
+// definition even though the component renders them at runtime.
+// Cast to a compatible type so we can pass children without TS errors.
+const Button = HeroButton as unknown as React.FC<React.ComponentPropsWithRef<'button'> & {
+  variant?: string;
+  isDisabled?: boolean;
+  onPress?: () => void;
+  fullWidth?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  type?: 'button' | 'submit' | 'reset';
+  children?: ReactNode;
+}>;
 
 type Variant = 'brand' | 'secondary' | 'ghost' | 'danger' | 'danger-soft';
 type Size    = 'sm' | 'md' | 'lg';

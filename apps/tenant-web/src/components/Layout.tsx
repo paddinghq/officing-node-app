@@ -85,12 +85,12 @@ function NavLink2({
       end={item.to === '/dashboard'}
       title={collapsed ? item.label : undefined}
       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors"
-      style={({ isActive }) => ({
+      style={({ isActive }: { isActive: boolean }) => ({
         background: isActive ? 'var(--brand-primary)' : 'transparent',
         color: isActive ? '#fff' : 'var(--muted)',
       })}
     >
-      {({ isActive }) => (
+      {({ isActive }: { isActive: boolean }) => (
         <>
           <Icon
             width={17}
