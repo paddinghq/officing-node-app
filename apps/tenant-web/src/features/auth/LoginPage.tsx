@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { signIn, getCompany, getSubscription } from '@officing/api-client';
+import { signIn, getCompany, getSubscription, getTenantSlug } from '@officing/api-client';
 import { useAuthStore } from '../../store/auth';
 import { Button, Spinner } from '@heroui/react';
 import { Envelope, Eye, EyeSlash, SquareLetterT } from '@gravity-ui/icons';
@@ -19,7 +19,8 @@ export function LoginPage() {
     try {
       const res = await signIn(form.email, form.password, form.rememberMe);
       if (res.success) {
-        login(res.user, res.accessToken, res.refreshToken, res.user.tenantSlug);
+        const slug = getTenantSlug(form.email)
+        login(res.user, res.accessToken, res.refreshToken, slug);
 
         // Load branding and subscription in parallel
         try {

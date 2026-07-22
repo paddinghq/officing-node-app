@@ -1,188 +1,176 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
   listInvoices, deleteInvoice, exportInvoicesCSV, downloadInvoicePDF,
   sendInvoice, markInvoiceSent, duplicateInvoice, downloadBlob,
 } from '@officing/api-client';
 import type { Invoice } from '@officing/api-client';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { Pagination } from '../../components/ui/Pagination';
-import { Modal } from '../../components/ui/Modal';
-import { PaymentModal } from './PaymentModal';
 import { useAuthStore } from '../../store/auth';
+import { Btn, SBadge, DataTable, SModal, PageShell } from '../../components/ui/index';
+import { Field } from '../../components/ui/Field';
+import { PaymentModal } from './PaymentModal';
+import {
+  Plus, ArrowDownToSquare, FileDollar, FileText,
+  Pencil, TrashBin, ArrowUpFromSquare, CreditCard, FilePlus, PaperPlane,
+} from '@gravity-ui/icons';
 
-type Color = 'green' | 'yellow' | 'red' | 'blue' | 'gray' | 'purple';
-const statusColor: Record<string, Color> = {
-  draft: 'gray', sent: 'blue', paid: 'green', partial: 'yellow', overdue: 'red', cancelled: 'gray',
+const STATUS_COLOR: Record<string, 'success' | 'info' | 'warning' | 'danger' | 'neutral'> = {
+  draft: 'neutral', sent: 'info', paid: 'success', partial: 'warning', overdue: 'danger', cancelled: 'neutral',
 };
 
 function fmt(n: number) {
   return new Intl.NumberFormat('en', { minimumFractionDigits: 2 }).format(n);
 }
 
-export function InvoiceListPage() {
-  const qc = useQueryClient();
-  const subscription = useAuthStore(s => s.subscription);
-  const hasPdf = !subscription || ['standard', 'premium'].includes(subscription.plan);
+const COLS = [
+  { key: 'invoiceNumber', label: 'Number' },
+  { key: 'customer',      label: 'Customer' },
+  { key: 'status',        label: 'Status' },
+  { key: 'dueDate',       label: 'Due date' },
+  { key: 'total',         label: 'Total', align: 'right' as const },
+  { key: 'actions',       label: '' },
+];
 
-  const [page, setPage] = useState(1);
+export function InvoiceListPage() {
+  const qc           = useQueryClient();
+  const subscription = useAuthStore(s => s.subscription);
+  const hasPdf       = !subscription || ['standard', 'premium'].includes(subscription.plan);
+
+  const [page, setPage]           = useState(1);
   const [sendModal, setSendModal] = useState<Invoice | null>(null);
-  const [payModal, setPayModal] = useState<Invoice | null>(null);
-  const [sendMsg, setSendMsg] = useState('');
+  const [payModal, setPayModal]   = useState<Invoice | null>(null);
+  const [sendMsg, setSendMsg]     = useState('');
   const [sendLoading, setSendLoading] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['invoices', page],
-    queryFn: () => listInvoices({ page, limit: 20 }),
-  });
+  const { data, isLoading } = useQuery({ queryKey: ['invoices', page], queryFn: () => listInvoices({ page, limit: 20 }) });
 
-  const deleteMut = useMutation({
-    mutationFn: deleteInvoice,
-    onSuccess: () => { toast.success('Deleted'); qc.invalidateQueries({ queryKey: ['invoices'] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const dupMut = useMutation({
-    mutationFn: duplicateInvoice,
-    onSuccess: () => { toast.success('Duplicated'); qc.invalidateQueries({ queryKey: ['invoices'] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const deleteMut = useMutation({ mutationFn: deleteInvoice, onSuccess: () => { toast.success('Invoice deleted'); qc.invalidateQueries({ queryKey: ['invoices'] }); }, onError: (e: Error) => toast.error(e.message) });
+  const dupMut    = useMutation({ mutationFn: duplicateInvoice, onSuccess: () => { toast.success('Duplicated'); qc.invalidateQueries({ queryKey: ['invoices'] }); }, onError: (e: Error) => toast.error(e.message) });
 
   async function handleExport() {
-    try {
-      const blob = await exportInvoicesCSV();
-      downloadBlob(blob, 'invoices.csv');
-    } catch (e: unknown) { toast.error((e as Error).message); }
+    try { downloadBlob(await exportInvoicesCSV(), 'invoices.csv'); } catch (e: unknown) { toast.error((e as Error).message); }
   }
-
   async function handlePDF(id: string, num: string) {
     if (!hasPdf) { toast.error('PDF export requires Standard plan'); return; }
-    try {
-      const blob = await downloadInvoicePDF(id);
-      downloadBlob(blob, `invoice-${num}.pdf`);
-    } catch (e: unknown) { toast.error((e as Error).message); }
+    try { downloadBlob(await downloadInvoicePDF(id), `invoice-${num}.pdf`); } catch (e: unknown) { toast.error((e as Error).message); }
   }
-
+  async function handleMarkSent(id: string) {
+    try { await markInvoiceSent(id); toast.success('Marked as sent'); qc.invalidateQueries({ queryKey: ['invoices'] }); } catch (e: unknown) { toast.error((e as Error).message); }
+  }
   async function handleSend() {
     if (!sendModal) return;
     setSendLoading(true);
-    try {
-      await sendInvoice(sendModal._id, sendMsg);
-      toast.success('Invoice sent');
-      setSendModal(null); setSendMsg('');
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-    } catch (e: unknown) { toast.error((e as Error).message); }
+    try { await sendInvoice(sendModal._id, sendMsg); toast.success('Invoice sent'); setSendModal(null); setSendMsg(''); qc.invalidateQueries({ queryKey: ['invoices'] }); }
+    catch (e: unknown) { toast.error((e as Error).message); }
     finally { setSendLoading(false); }
   }
 
-  return (
-    <div className="p-8 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Invoices</h2>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={handleExport}>Export CSV</Button>
-          <Link to="/invoices/new"><Button size="sm">+ New Invoice</Button></Link>
-        </div>
-      </div>
+  function renderCell(inv: Invoice, key: string) {
+    const cust = typeof inv.customer === 'object' ? inv.customer : null;
+    switch (key) {
+      case 'invoiceNumber':
+        return (
+          <Link to={`/invoices/${inv._id}`} className="font-semibold hover:underline" style={{ color: 'var(--brand-primary)' }}>
+            {inv.invoiceNumber}
+          </Link>
+        );
+      case 'customer':   return <span style={{ color: 'var(--foreground)' }}>{cust ? `${cust.contact?.firstName ?? cust.firstName ?? ''} ${cust.contact?.lastName ?? cust.lastName ?? ''}`.trim() : '—'}</span>;
+      case 'status':     return <SBadge color={STATUS_COLOR[inv.status] ?? 'neutral'}>{inv.status}</SBadge>;
+      case 'dueDate':    return <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>{inv.dueDate?.slice(0, 10)}</span>;
+      case 'total':      return <span className="font-semibold tabular-nums">{fmt(inv.total)}</span>;
+      case 'actions':
+        return (
+          <div className="flex items-center justify-end gap-1 flex-wrap">
+            <Link to={`/invoices/${inv._id}/edit`}>
+              <Btn variant="ghost" size="sm"><Pencil width={13} height={13} /></Btn>
+            </Link>
+            <Btn variant="ghost" size="sm" onClick={() => setSendModal(inv)}><PaperPlane width={13} height={13} /></Btn>
+            <Btn variant="ghost" size="sm" onClick={() => handleMarkSent(inv._id)}><ArrowUpFromSquare width={13} height={13} /></Btn>
+            <Btn variant="ghost" size="sm" onClick={() => setPayModal(inv)}><CreditCard width={13} height={13} /></Btn>
+            <Btn variant="ghost" size="sm" onClick={() => handlePDF(inv._id, inv.invoiceNumber)}><ArrowDownToSquare width={13} height={13} /></Btn>
+            <Btn variant="ghost" size="sm" onClick={() => dupMut.mutate(inv._id)}><FilePlus width={13} height={13} /></Btn>
+            <Btn variant="danger-soft" size="sm" onClick={() => { if (confirm('Delete invoice?')) deleteMut.mutate(inv._id); }}><TrashBin width={13} height={13} /></Btn>
+          </div>
+        );
+      default: return null;
+    }
+  }
 
-      {/* Summary */}
+  return (
+    <PageShell
+      title="Invoices"
+      subtitle="Manage your sales invoices and payments."
+      actions={
+        <>
+          <Btn variant="secondary" size="sm" onClick={handleExport}>
+            <ArrowDownToSquare width={14} height={14} /> Export CSV
+          </Btn>
+          <Link to="/invoices/new">
+            <Btn size="sm"><Plus width={14} height={14} /> New invoice</Btn>
+          </Link>
+        </>
+      }
+    >
+      {/* Summary strip */}
       {data?.summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Object.entries(data.summary).map(([k, v]) => (
-            <div key={k} className="bg-white border rounded-lg p-3 shadow-sm">
-              <p className="text-xs text-gray-500 capitalize">{k.replace(/([A-Z])/g, ' $1')}</p>
-              <p className="font-bold">{typeof v === 'number' ? fmt(v) : String(v)}</p>
+            <div
+              key={k}
+              className="rounded-2xl border p-4"
+              style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+            >
+              <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>
+                {k.replace(/([A-Z])/g, ' $1').trim()}
+              </p>
+              <p className="text-xl font-bold tabular-nums" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
+                {typeof v === 'number' ? fmt(v) : String(v)}
+              </p>
             </div>
           ))}
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              {['Number', 'Customer', 'Status', 'Due Date', 'Total', 'Actions'].map(h => (
-                <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>}
-            {!isLoading && data?.docs?.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No invoices yet.</td></tr>
-            )}
-            {data?.docs?.map(inv => {
-              const cust = typeof inv.customer === 'object' ? inv.customer : null;
-              const custName = cust ? `${cust.firstName} ${cust.lastName}` : 'Unknown';
-              return (
-                <tr key={inv._id} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">
-                    <Link to={`/invoices/${inv._id}`} className="text-[var(--brand-primary)] hover:underline">
-                      {inv.invoiceNumber}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{custName}</td>
-                  <td className="px-4 py-3"><Badge color={statusColor[inv.status] ?? 'gray'}>{inv.status}</Badge></td>
-                  <td className="px-4 py-3 text-gray-600">{inv.dueDate?.slice(0, 10)}</td>
-                  <td className="px-4 py-3 font-medium">{fmt(inv.total)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Link to={`/invoices/${inv._id}/edit`}>
-                        <Button variant="ghost" size="sm">Edit</Button>
-                      </Link>
-                      <Button variant="ghost" size="sm" onClick={() => setSendModal(inv)}>Send</Button>
-                      <Button variant="ghost" size="sm" onClick={() => setPayModal(inv)}>Pay</Button>
-                      <Button variant="ghost" size="sm" onClick={() => handlePDF(inv._id, inv.invoiceNumber)}>PDF</Button>
-                      <Button variant="ghost" size="sm" onClick={() => dupMut.mutate(inv._id)}>Dup</Button>
-                      <Button variant="danger" size="sm"
-                        onClick={() => { if (confirm('Delete?')) deleteMut.mutate(inv._id); }}
-                      >Del</Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <DataTable
+        columns={COLS}
+        rows={data?.docs ?? []}
+        renderCell={renderCell}
+        isLoading={isLoading}
+        page={page}
+        hasNextPage={data?.hasNextPage}
+        hasPrevPage={data?.hasPrevPage}
+        totalDocs={data?.totalDocs ?? 0}
+        limit={20}
+        onPageChange={setPage}
+        emptyMessage="No invoices yet. Create your first invoice."
+      />
 
-        {data && (
-          <div className="px-4 pb-4">
-            <Pagination
-              page={page}
-              hasNextPage={data.hasNextPage}
-              hasPrevPage={data.hasPrevPage}
-              totalDocs={data.totalDocs}
-              limit={20}
-              onPageChange={setPage}
-            />
+      <SModal open={!!sendModal} onClose={() => { setSendModal(null); setSendMsg(''); }} title="Send invoice" size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Btn variant="secondary" onClick={() => setSendModal(null)}>Cancel</Btn>
+            <Btn loading={sendLoading} onClick={handleSend}>
+              <PaperPlane width={14} height={14} /> Send
+            </Btn>
           </div>
-        )}
-      </div>
-
-      {/* Send modal */}
-      <Modal open={!!sendModal} onClose={() => { setSendModal(null); setSendMsg(''); }} title="Send Invoice">
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Send invoice <strong>{sendModal?.invoiceNumber}</strong> to customer email.
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            Send invoice <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{sendModal?.invoiceNumber}</span> to the customer's email.
           </p>
-          <textarea
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          <Field.Textarea
+            label="Optional message"
             rows={3}
-            placeholder="Optional message…"
+            placeholder="Add a personal note…"
             value={sendMsg}
             onChange={e => setSendMsg(e.target.value)}
           />
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setSendModal(null)}>Cancel</Button>
-            <Button loading={sendLoading} onClick={handleSend}>Send</Button>
-          </div>
         </div>
-      </Modal>
+      </SModal>
 
-      {/* Payment modal */}
       {payModal && (
         <PaymentModal
           open={!!payModal}
@@ -191,6 +179,6 @@ export function InvoiceListPage() {
           onSuccess={() => { setPayModal(null); qc.invalidateQueries({ queryKey: ['invoices'] }); }}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

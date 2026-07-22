@@ -1,40 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getCrmSettings, updateCrmSettings } from '@officing/api-client';
 import type { PipelineStage } from '@officing/api-client';
-import { Card } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
-import { Button } from '../../components/ui/Button';
-import { Select } from '../../components/ui/Select';
 import { useAuthStore } from '../../store/auth';
+import { Btn, SCard, PageShell, PlanGate } from '../../components/ui/index';
+import { Field } from '../../components/ui/Field';
+import { Plus, Xmark } from '@gravity-ui/icons';
 
 export function CrmSettingsPage() {
   const subscription = useAuthStore(s => s.subscription);
   const hasCrm = !subscription || ['standard', 'premium'].includes(subscription.plan);
   const { data, isLoading } = useQuery({ queryKey: ['crm-settings'], queryFn: getCrmSettings, enabled: hasCrm });
 
-  const [stages, setStages] = useState<PipelineStage[]>([]);
-  const [baseCurrency, setBaseCurrency] = useState('NGN');
-  const [dealRottenAfterDays, setDealRottenAfterDays] = useState('14');
-  const [hasTarget, setHasTarget] = useState(false);
-  const [targetAmount, setTargetAmount] = useState('');
-  const [targetPeriod, setTargetPeriod] = useState<'monthly' | 'quarterly'>('monthly');
-  const [captureApiKey, setCaptureApiKey] = useState('');
-  const [loaded, setLoaded] = useState(false);
+  const [stages, setStages]           = useState<PipelineStage[]>([]);
+  const [baseCurrency, setBase]       = useState('NGN');
+  const [rottenDays, setRotten]       = useState('14');
+  const [hasTarget, setHasTarget]     = useState(false);
+  const [targetAmount, setTargetAmt]  = useState('');
+  const [targetPeriod, setTargetPer]  = useState<'monthly' | 'quarterly'>('monthly');
+  const [captureKey, setCaptureKey]   = useState('');
+  const [loaded, setLoaded]           = useState(false);
 
   useEffect(() => {
     if (data?.data && !loaded) {
       const s = data.data;
       setStages(s.pipelineStages);
-      setBaseCurrency(s.baseCurrency);
-      setDealRottenAfterDays(String(s.dealRottenAfterDays));
-      if (s.revenueTarget) {
-        setHasTarget(true);
-        setTargetAmount(String(s.revenueTarget.amount));
-        setTargetPeriod(s.revenueTarget.period);
-      }
-      setCaptureApiKey(s.captureApiKey ?? '');
+      setBase(s.baseCurrency);
+      setRotten(String(s.dealRottenAfterDays));
+      if (s.revenueTarget) { setHasTarget(true); setTargetAmt(String(s.revenueTarget.amount)); setTargetPer(s.revenueTarget.period); }
+      setCaptureKey(s.captureApiKey ?? '');
       setLoaded(true);
     }
   }, [data, loaded]);
@@ -43,97 +38,91 @@ export function CrmSettingsPage() {
     mutationFn: () => updateCrmSettings({
       pipelineStages: stages,
       baseCurrency: baseCurrency.toUpperCase(),
-      dealRottenAfterDays: Number(dealRottenAfterDays),
+      dealRottenAfterDays: Number(rottenDays),
       revenueTarget: hasTarget ? { amount: Number(targetAmount), currency: baseCurrency.toUpperCase(), period: targetPeriod } : null,
-      captureApiKey: captureApiKey || undefined,
+      captureApiKey: captureKey || undefined,
     }),
     onSuccess: () => toast.success('CRM settings saved'),
     onError: (e: Error) => toast.error(e.message),
   });
 
   function updateStage(i: number, patch: Partial<PipelineStage>) {
-    setStages(s => s.map((stage, idx) => idx === i ? { ...stage, ...patch } : stage));
+    setStages(s => s.map((st, idx) => idx === i ? { ...st, ...patch } : st));
   }
-  function addStage() {
-    setStages(s => [...s, { key: '', label: '', order: s.length, defaultProbability: 0 }]);
-  }
-  function removeStage(i: number) {
-    setStages(s => s.filter((_, idx) => idx !== i));
-  }
-
-  if (!hasCrm) {
-    return (
-      <div className="p-8">
-        <h2 className="text-xl font-semibold mb-4">CRM Settings</h2>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
-          <p className="text-yellow-800 font-medium">CRM is available on Standard plan and above.</p>
-          <a href="mailto:support@officing.app" className="text-[var(--brand-primary)] underline text-sm mt-2 inline-block">Contact support to upgrade</a>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) return <div className="p-8 text-gray-400">Loading…</div>;
 
   return (
-    <div className="p-8 max-w-2xl space-y-6">
-      <h2 className="text-xl font-semibold">CRM Settings</h2>
-      <form onSubmit={e => { e.preventDefault(); mutation.mutate(); }} className="space-y-6">
-        <Card title="Pipeline Stages">
-          <div className="space-y-3">
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-1">
-              <span className="col-span-3">Key</span>
-              <span className="col-span-3">Label</span>
-              <span className="col-span-2">Order</span>
-              <span className="col-span-2">Probability</span>
-              <span className="col-span-2">Color</span>
-            </div>
-            {stages.map((stage, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-3"><Input value={stage.key} onChange={e => updateStage(i, { key: e.target.value })} /></div>
-                <div className="col-span-3"><Input value={stage.label} onChange={e => updateStage(i, { label: e.target.value })} /></div>
-                <div className="col-span-2"><Input type="number" value={stage.order} onChange={e => updateStage(i, { order: Number(e.target.value) })} /></div>
-                <div className="col-span-2"><Input type="number" value={stage.defaultProbability} onChange={e => updateStage(i, { defaultProbability: Number(e.target.value) })} /></div>
-                <div className="col-span-1"><Input type="color" value={stage.color ?? '#6366f1'} onChange={e => updateStage(i, { color: e.target.value })} /></div>
-                <div className="col-span-1"><button type="button" onClick={() => removeStage(i)} className="text-red-400 hover:text-red-600 text-lg">×</button></div>
-              </div>
-            ))}
-            <Button type="button" variant="ghost" size="sm" onClick={addStage}>+ Add Stage</Button>
-          </div>
-        </Card>
-
-        <Card title="General">
-          <div className="space-y-4">
-            <Input label="Base Currency" value={baseCurrency} onChange={e => setBaseCurrency(e.target.value)} />
-            <Input label="Deal Rotten After (days)" type="number" min="1" value={dealRottenAfterDays} onChange={e => setDealRottenAfterDays(e.target.value)} />
-          </div>
-        </Card>
-
-        <Card title="Revenue Target">
-          <div className="space-y-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={hasTarget} onChange={e => setHasTarget(e.target.checked)} /> Set a company-wide revenue target
-            </label>
-            {hasTarget && (
-              <div className="grid grid-cols-2 gap-3">
-                <Input label={`Amount (${baseCurrency})`} type="number" min="0" value={targetAmount} onChange={e => setTargetAmount(e.target.value)} />
-                <Select label="Period" options={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }]} value={targetPeriod} onChange={e => setTargetPeriod(e.target.value as 'monthly' | 'quarterly')} />
-              </div>
+    <PlanGate allowed={hasCrm} feature="CRM Settings">
+      <PageShell title="CRM settings" subtitle="Configure your pipeline, currencies and targets." maxWidth="max-w-2xl">
+        <form onSubmit={e => { e.preventDefault(); mutation.mutate(); }} className="space-y-5">
+          {/* Pipeline stages */}
+          <SCard title="Pipeline stages">
+            {!isLoading && (
+              <>
+                <div className="grid grid-cols-12 gap-2 mb-2 px-1">
+                  {['Key', 'Label', 'Order', 'Prob.', 'Color', ''].map((h, i) => (
+                    <span key={i} className={`text-[11px] font-bold uppercase tracking-wide ${i < 3 ? 'col-span-3' : i === 3 ? 'col-span-2' : i === 4 ? 'col-span-1' : 'col-span-1'}`} style={{ color: 'var(--muted)' }}>{h}</span>
+                  ))}
+                </div>
+                {stages.map((st, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 items-start mb-2">
+                    <div className="col-span-3"><Field value={st.key}   onChange={e => updateStage(i, { key: e.target.value })} /></div>
+                    <div className="col-span-3"><Field value={st.label} onChange={e => updateStage(i, { label: e.target.value })} /></div>
+                    <div className="col-span-3"><Field type="number" value={st.order} onChange={e => updateStage(i, { order: Number(e.target.value) })} /></div>
+                    <div className="col-span-2"><Field type="number" value={st.defaultProbability} onChange={e => updateStage(i, { defaultProbability: Number(e.target.value) })} /></div>
+                    <div className="col-span-1">
+                      <input type="color" value={st.color ?? '#6366f1'} onChange={e => updateStage(i, { color: e.target.value })} className="w-8 h-8 rounded-lg cursor-pointer border" style={{ borderColor: 'var(--border)' }} />
+                    </div>
+                    <div className="col-span-1 pt-2">
+                      <button type="button" onClick={() => setStages(s => s.filter((_, idx) => idx !== i))} className="rounded-lg p-1" style={{ color: 'var(--muted)' }}>
+                        <Xmark width={14} height={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <Btn type="button" variant="ghost" size="sm" onClick={() => setStages(s => [...s, { key: '', label: '', order: s.length, defaultProbability: 0 }])}>
+                  <Plus width={13} height={13} /> Add stage
+                </Btn>
+              </>
             )}
-          </div>
-        </Card>
+          </SCard>
 
-        <Card title="Public Lead Capture">
-          <Input
-            label="Capture API Key (optional)"
-            value={captureApiKey}
-            onChange={e => setCaptureApiKey(e.target.value)}
-            helpText="If set, your website must send this as x-crm-capture-key when POSTing to /crm/leads/capture."
-          />
-        </Card>
+          {/* General */}
+          <SCard title="General">
+            <div className="space-y-4">
+              <Field label="Base currency" value={baseCurrency} onChange={e => setBase(e.target.value)} />
+              <Field label="Deal rotten after (days)" type="number" min="1" value={rottenDays} onChange={e => setRotten(e.target.value)} />
+            </div>
+          </SCard>
 
-        <Button type="submit" loading={mutation.isPending}>Save Settings</Button>
-      </form>
-    </div>
+          {/* Revenue target */}
+          <SCard title="Revenue target">
+            <div className="space-y-4">
+              <label className="flex items-center gap-2.5 text-sm cursor-pointer" style={{ color: 'var(--foreground)' }}>
+                <input type="checkbox" checked={hasTarget} onChange={e => setHasTarget(e.target.checked)} style={{ accentColor: 'var(--brand-primary)' }} />
+                Set a company-wide revenue target
+              </label>
+              {hasTarget && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={`Amount (${baseCurrency})`} type="number" min="0" value={targetAmount} onChange={e => setTargetAmt(e.target.value)} />
+                  <Field.Select label="Period" options={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }]} value={targetPeriod} onChange={e => setTargetPer(e.target.value as 'monthly' | 'quarterly')} />
+                </div>
+              )}
+            </div>
+          </SCard>
+
+          {/* Lead capture */}
+          <SCard title="Public lead capture">
+            <Field
+              label="Capture API key (optional)"
+              value={captureKey}
+              onChange={e => setCaptureKey(e.target.value)}
+              helpText="If set, your website must send this as x-crm-capture-key when POSTing to /crm/leads/capture."
+            />
+          </SCard>
+
+          <Btn type="submit" loading={mutation.isPending}>Save settings</Btn>
+        </form>
+      </PageShell>
+    </PlanGate>
   );
 }
