@@ -47,6 +47,7 @@ declare module 'recharts' {
     margin?: { top?: number; right?: number; bottom?: number; left?: number };
     layout?: 'horizontal' | 'vertical';
     barSize?: number;
+    barCategoryGap?: string | number;
   }
   export const BarChart: FC<BarChartProps>;
 
@@ -74,7 +75,7 @@ declare module 'recharts' {
     tick?: boolean | object | FC<SVGProps<SVGTextElement>>;
     axisLine?: boolean | object;
     tickLine?: boolean | object;
-    tickFormatter?: (value: unknown, index: number) => string;
+    tickFormatter?: ((value: unknown, index: number) => string) | ((value: number, index: number) => string);
     type?: 'number' | 'category';
     domain?: unknown[];
     hide?: boolean;
@@ -91,7 +92,7 @@ declare module 'recharts' {
   export const CartesianGrid: FC<CartesianGridProps>;
 
   export interface TooltipProps extends CommonProps {
-    formatter?: (value: unknown, name?: string, props?: unknown) => unknown;
+    formatter?: ((value: unknown, name?: string, props?: unknown) => unknown) | ((value: number, name?: string, props?: unknown) => unknown);
     labelFormatter?: (label: unknown) => ReactNode;
     contentStyle?: CSSProperties;
     itemStyle?: CSSProperties;
@@ -164,7 +165,7 @@ declare module 'recharts' {
   export interface CellProps extends CommonProps {
     fill?: string;
     stroke?: string;
-    key?: string;
+    key?: string | number;
   }
   export const Cell: FC<CellProps>;
 }
