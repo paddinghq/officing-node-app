@@ -5,7 +5,7 @@ Two Vite/React apps wiring into the Officing Node API.
 | App | Port | Audience |
 |-----|------|----------|
 | `apps/tenant-web` | 5173 | Company users (finance, admin, staff) |
-| `apps/platform-admin` | 5174 | Officing platform ops team |
+| `apps/**platform**-admin` | 5174 | Officing platform ops team |
 
 ## Quick start
 

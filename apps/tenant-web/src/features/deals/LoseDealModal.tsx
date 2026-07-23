@@ -1,15 +1,9 @@
-import React from 'react';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { loseDeal } from '@officing/api-client';
 import { ReasonModal } from '../../components/crm/ReasonModal';
 
-interface Props {
-  open: boolean;
-  dealId: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}
+interface Props { open: boolean; dealId: string; onClose: () => void; onSuccess: () => void; }
 
 export function LoseDealModal({ open, dealId, onClose, onSuccess }: Props) {
   const mutation = useMutation({
@@ -17,15 +11,5 @@ export function LoseDealModal({ open, dealId, onClose, onSuccess }: Props) {
     onSuccess: () => { toast.success('Deal marked as lost'); onSuccess(); onClose(); },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  return (
-    <ReasonModal
-      open={open}
-      title="Lose Deal"
-      actionLabel="Mark Lost"
-      onClose={onClose}
-      onSubmit={reason => mutation.mutate(reason)}
-      loading={mutation.isPending}
-    />
-  );
+  return <ReasonModal open={open} title="Lose deal" actionLabel="Mark lost" onClose={onClose} onSubmit={reason => mutation.mutate(reason)} loading={mutation.isPending} />;
 }

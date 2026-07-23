@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getDealsBoard, changeDealStage } from '@officing/api-client';
-import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/auth';
+import { Btn, PageShell, PlanGate, SBadge } from '../../components/ui/index';
+import { Spinner } from '@heroui/react';
+import { ListUl } from '@gravity-ui/icons';
 
-function fmt(n: number) {
-  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
-}
+function fmt(n: number) { return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n); }
 
 export function DealBoardPage() {
   const subscription = useAuthStore(s => s.subscription);
   const hasCrm = !subscription || ['standard', 'premium'].includes(subscription.plan);
   const qc = useQueryClient();
-  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ['crm-deals-board'], queryFn: getDealsBoard, enabled: hasCrm });
 
-  const stageMutation = useMutation({
+  const stageMut = useMutation({
     mutationFn: ({ dealId, stage }: { dealId: string; stage: string }) => changeDealStage(dealId, stage),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['crm-deals-board'] }),
     onError: (e: Error) => toast.error(e.message),
@@ -26,67 +26,81 @@ export function DealBoardPage() {
 
   function handleDrop(e: React.DragEvent, stage: string) {
     e.preventDefault();
-    setDragOverStage(null);
+    setDragOver(null);
     const dealId = e.dataTransfer.getData('text/plain');
-    if (dealId) stageMutation.mutate({ dealId, stage });
+    if (dealId) stageMut.mutate({ dealId, stage });
   }
-
-  if (!hasCrm) {
-    return (
-      <div className="p-8">
-        <h2 className="text-xl font-semibold mb-4">Deals — Board</h2>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
-          <p className="text-yellow-800 font-medium">CRM is available on Standard plan and above.</p>
-          <a href="mailto:support@officing.app" className="text-[var(--brand-primary)] underline text-sm mt-2 inline-block">Contact support to upgrade</a>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) return <div className="p-8 text-gray-400">Loading board…</div>;
 
   return (
-    <div className="p-8 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Deals — Board</h2>
-        <Link to="/deals"><Button variant="secondary" size="sm">Table View</Button></Link>
-      </div>
+    <PlanGate allowed={hasCrm} feature="CRM — Deal board">
+      <PageShell title="Deals — Board view" subtitle="Drag cards between columns to update stage."
+        actions={<Link to="/deals"><Btn variant="secondary" size="sm"><ListUl width={13} height={13} /> Table view</Btn></Link>}
+      >
+        {isLoading && <div className="flex justify-center py-16"><Spinner /></div>}
 
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {data?.board.map(group => (
-          <div
-            key={group.stage}
-            onDragOver={e => { e.preventDefault(); setDragOverStage(group.stage); }}
-            onDragLeave={() => setDragOverStage(null)}
-            onDrop={e => handleDrop(e, group.stage)}
-            className={`flex-shrink-0 w-72 bg-gray-50 rounded-xl border ${dragOverStage === group.stage ? 'border-[var(--brand-primary)]' : 'border-gray-200'} p-3`}
-          >
-            <div className="flex items-center justify-between mb-3 px-1">
-              <h3 className="font-semibold text-sm text-gray-700">{group.label}</h3>
-              <span className="text-xs text-gray-400">{group.count} · {fmt(group.totalValue)}</span>
-            </div>
-            <div className="space-y-2">
-              {group.deals.map(deal => (
-                <div
-                  key={deal._id}
-                  draggable
-                  onDragStart={e => e.dataTransfer.setData('text/plain', deal._id)}
-                  className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm cursor-grab active:cursor-grabbing"
-                >
-                  <Link to={`/deals/${deal._id}`} className="text-sm font-medium text-gray-900 hover:underline block truncate">
-                    {deal.title}
-                  </Link>
-                  <p className="text-xs text-gray-500 mt-1">{deal.value.amount.toLocaleString()} {deal.value.currency}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {typeof deal.assignedTo === 'object' ? `${deal.assignedTo.firstName} ${deal.assignedTo.lastName}` : ''}
-                  </p>
+        {!isLoading && (
+          <div className="flex gap-4 overflow-x-auto pb-6">
+            {data?.board.map(group => (
+              <div
+                key={group.stage}
+                onDragOver={e => { e.preventDefault(); setDragOver(group.stage); }}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={e => handleDrop(e, group.stage)}
+                className="shrink-0 w-72 flex flex-col gap-3 rounded-2xl p-3 transition-colors"
+                style={{
+                  background: dragOver === group.stage
+                    ? 'color-mix(in srgb, var(--brand-primary) 8%, var(--surface-secondary))'
+                    : 'var(--surface-secondary)',
+                  border: `2px solid ${dragOver === group.stage ? 'var(--brand-primary)' : 'transparent'}`,
+                }}
+              >
+                {/* Column header */}
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--foreground)' }}>
+                    {group.label}
+                  </span>
+                  <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>
+                    {group.count} · {fmt(group.totalValue)}
+                  </span>
                 </div>
-              ))}
-              {group.deals.length === 0 && <p className="text-xs text-gray-300 text-center py-4">No deals</p>}
-            </div>
+
+                {/* Cards */}
+                {group.deals.map(deal => (
+                  <div
+                    key={deal._id}
+                    draggable
+                    onDragStart={e => e.dataTransfer.setData('text/plain', deal._id)}
+                    className="rounded-xl border p-3 cursor-grab active:cursor-grabbing shadow-sm transition-shadow hover:shadow-md"
+                    style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+                  >
+                    <Link
+                      to={`/deals/${deal._id}`}
+                      className="block text-sm font-semibold hover:underline truncate mb-1.5"
+                      style={{ color: 'var(--foreground)' }}
+                    >
+                      {deal.title}
+                    </Link>
+                    <p className="text-xs font-semibold tabular-nums mb-1.5" style={{ color: 'var(--brand-primary)' }}>
+                      {deal.value.amount.toLocaleString()} {deal.value.currency}
+                    </p>
+                    {typeof deal.assignedTo === 'object' && deal.assignedTo && (
+                      <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                        {deal.assignedTo.firstName} {deal.assignedTo.lastName}
+                      </p>
+                    )}
+                  </div>
+                ))}
+
+                {group.deals.length === 0 && (
+                  <p className="text-xs text-center py-6" style={{ color: 'var(--muted)' }}>
+                    No deals in this stage
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
+        )}
+      </PageShell>
+    </PlanGate>
   );
 }

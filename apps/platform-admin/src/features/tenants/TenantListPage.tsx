@@ -1,64 +1,198 @@
-import React, { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { listTenants } from '@officing/api-client';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { Pagination } from '../../components/ui/Pagination';
+import type { Tenant } from '@officing/api-client';
+import { Button, Spinner } from '@heroui/react';
+import { Plus } from '@gravity-ui/icons';
 import { useAdminStore } from '../../store/auth';
+import { PaginatedTable } from '../../components/ui/PaginatedTable';
 
-type Color = 'green' | 'yellow' | 'red' | 'blue' | 'gray' | 'purple';
-const statusColor: Record<string, Color> = { active: 'green', suspended: 'red', inactive: 'gray' };
-const planColor: Record<string, Color> = { free: 'gray', basic: 'blue', standard: 'purple', premium: 'green' };
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  active:    { bg: 'rgba(22,163,74,0.12)',  text: '#16a34a' },
+  suspended: { bg: 'rgba(220,38,38,0.12)',  text: '#dc2626' },
+  inactive:  { bg: 'var(--surface-secondary)', text: 'var(--muted)' },
+};
+
+const PLAN_COLORS: Record<string, { bg: string; text: string }> = {
+  free:     { bg: 'var(--surface-secondary)', text: 'var(--muted)' },
+  basic:    { bg: 'rgba(99,102,241,0.12)',  text: '#6366f1' },
+  standard: { bg: 'rgba(245,158,11,0.12)',  text: '#d97706' },
+  premium:  { bg: 'rgba(22,163,74,0.12)',   text: '#16a34a' },
+};
+
+const STATUS_OPTIONS = [
+  { value: '',          label: 'All statuses' },
+  { value: 'active',    label: 'Active' },
+  { value: 'suspended', label: 'Suspended' },
+  { value: 'inactive',  label: 'Inactive' },
+];
+
+const COLUMNS = [
+  { id: 'slug',      name: 'Slug' },
+  { id: 'name',      name: 'Name' },
+  { id: 'plan',      name: 'Plan' },
+  { id: 'status',    name: 'Status' },
+  { id: 'createdAt', name: 'Created' },
+  { id: 'actions',   name: '' },
+];
+
+const ROWS_PER_PAGE = 20;
+
+function StatusBadge({ status }: { status: string }) {
+  const c = STATUS_COLORS[status] ?? STATUS_COLORS.inactive;
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
+      style={{ background: c.bg, color: c.text }}
+    >
+      {status}
+    </span>
+  );
+}
+
+function PlanBadge({ plan }: { plan: string }) {
+  const c = PLAN_COLORS[plan] ?? PLAN_COLORS.free;
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
+      style={{ background: c.bg, color: c.text }}
+    >
+      {plan}
+    </span>
+  );
+}
 
 export function TenantListPage() {
   const admin = useAdminStore(s => s.admin);
-  const isSuperAdmin = admin?.role == 'superadmin';
+  const isSuperAdmin = admin?.role === 'superadmin';
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+
   const { data, isLoading } = useQuery({
     queryKey: ['admin-tenants', page, statusFilter],
-    queryFn: () => listTenants({ page, limit: 20, status: statusFilter || undefined }),
+    queryFn: () => listTenants({ page, limit: ROWS_PER_PAGE, status: statusFilter || undefined }),
   });
 
+  const rows = data?.tenants ?? [];
+  const totalItems = data?.total ?? 0;
+
+  const renderCell = useCallback(
+    (t: Tenant, columnKey: string) => {
+      switch (columnKey) {
+        case 'slug':
+          return (
+            <span
+              className="font-mono text-xs"
+              style={{ color: 'var(--muted)' }}
+            >
+              {t.slug}
+            </span>
+          );
+        case 'name':
+          return (
+            <span className="font-medium" style={{ color: 'var(--foreground)' }}>
+              {t.name}
+            </span>
+          );
+        case 'plan':
+          return <PlanBadge plan={t.subscription.plan} />;
+        case 'status':
+          return <StatusBadge status={t.status} />;
+        case 'createdAt':
+          return (
+            <span className="font-mono text-xs" style={{ color: 'var(--muted)' }}>
+              {new Date(t.createdAt).toLocaleDateString()}
+            </span>
+          );
+        case 'actions':
+          return (
+            <Button
+              variant="outline"
+              className="text-xs"
+              onPress={() => navigate(`/admin/tenants/${t.slug}`)}
+            >
+              View
+            </Button>
+          );
+        default:
+          return null;
+      }
+    },
+    [navigate]
+  );
+
   return (
-    <div className="p-8 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Tenants</h2>
-        <div className="flex gap-2 items-center">
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-            <option value="inactive">Inactive</option>
+    <div className="space-y-6 pb-8">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2
+            className="text-2xl font-semibold tracking-tight"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}
+          >
+            Tenants
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            Manage every organization on the platform.
+          </p>
+        </div>
+
+        <div className="flex w-full flex-col-reverse gap-3 sm:w-auto sm:flex-row sm:items-center">
+          {/* Status filter */}
+          <select
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+            className="rounded-xl border px-3 py-2 text-sm w-full sm:w-44"
+            style={{
+              background: 'var(--field-background)',
+              borderColor: 'var(--field-border)',
+              color: 'var(--field-foreground)',
+            }}
+            aria-label="Filter by status"
+          >
+            {STATUS_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
-          {isSuperAdmin && <Link to="/admin/tenants/new"><Button size="sm" style={{ backgroundColor: '#4f46e5' }}>+ New Tenant</Button></Link>}
+
+          {isSuperAdmin && (
+            <Button
+              variant="primary"
+              className="w-full sm:w-auto font-medium"
+              onPress={() => navigate('/admin/tenants/new')}
+            >
+              <Plus width={16} height={16} />
+              New tenant
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>{['Slug', 'Name', 'Plan', 'Status', 'Created', 'Actions'].map(h => <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>}
-            {!isLoading && !data?.tenants?.length && <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No tenants found.</td></tr>}
-            {data?.tenants?.map(t => (
-              <tr key={t._id} className="border-b last:border-0 hover:bg-gray-50">
-                <td className="px-4 py-3 font-mono text-xs">{t.slug}</td>
-                <td className="px-4 py-3 font-medium">{t.name}</td>
-                <td className="px-4 py-3"><Badge color={planColor[t.subscription.plan] ?? 'gray'}>{t.subscription.plan}</Badge></td>
-                <td className="px-4 py-3"><Badge color={statusColor[t.status] ?? 'gray'}>{t.status}</Badge></td>
-                <td className="px-4 py-3 text-gray-500">{new Date(t.createdAt).toLocaleDateString()}</td>
-                <td className="px-4 py-3">
-                  <Link to={`/admin/tenants/${t.slug}`}><Button variant="ghost" size="sm">View</Button></Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {data && <div className="px-4 pb-4"><Pagination page={page} hasNextPage={page * 20 < data.total} hasPrevPage={page > 1} totalDocs={data.total} limit={20} onPageChange={setPage} /></div>}
+      {/* Table card */}
+      <div
+        className="rounded-2xl border overflow-hidden"
+        style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Spinner />
+          </div>
+        ) : (
+          <PaginatedTable
+            ariaLabel="Tenants table"
+            columns={COLUMNS}
+            items={rows}
+            totalItems={totalItems}
+            page={page}
+            rowsPerPage={ROWS_PER_PAGE}
+            onPageChange={setPage}
+            renderCell={renderCell}
+          />
+        )}
       </div>
     </div>
   );

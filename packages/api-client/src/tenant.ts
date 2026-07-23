@@ -1,5 +1,5 @@
 import type {
-  SignInResponse, User, Subscription, Customer, Merchant,
+  SignInResponse, User, UserEntry, Subscription, Customer, Merchant,
   Invoice, Bill, Estimate, Expense, ExpenseCategory, Asset,
   DashboardData, AgingReport, ProfitLossReport,
   ExpensesByCategoryReport, Notification, Role,
@@ -24,6 +24,12 @@ const DEFAULT_SLUG = () => getEnv('VITE_DEFAULT_TENANT_SLUG', 'officing');
 let _at: string | null = null;
 let _rt: string | null = null;
 let _slug: string | null = null;
+
+// ─── Optional 401 callback ────────────────────────────────────────────────────
+// Registered in main.tsx so the api-client can trigger a logout+redirect
+// without a circular import on the Zustand store.
+let _on401: (() => void) | null = null;
+export function setTenantOn401(cb: () => void) { _on401 = cb; }
 
 export function setTenantAuth(at: string, rt: string, slug?: string) {
   _at = at; _rt = rt;
@@ -64,13 +70,20 @@ export async function tenantFetch<T = unknown>(
   path: string, options: RequestInit = {}, isBlob = false,
 ): Promise<T> {
   const token = _at ?? localStorage.getItem('accessToken');
-  const slug = _slug ?? localStorage.getItem('tenantSlug') ?? DEFAULT_SLUG();
+  const slug = _slug ?? localStorage.getItem('tenantSlug');
   const headers = new Headers(options.headers);
+  
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
+  
   if (token) headers.set('at', token);
-  headers.set('x-tenant-slug', slug);
+  
+  // FIX: Only set the default slug if a specific one wasn't passed in the options
+  // and ensure we don't pass a literal "null" string to the backend.
+  if (!headers.has('x-tenant-slug') && slug) {
+    headers.set('x-tenant-slug', slug);
+  }
 
   let res = await fetch(`${API()}${path}`, { ...options, headers, credentials: 'include' });
 
@@ -80,10 +93,21 @@ export async function tenantFetch<T = unknown>(
       const newToken = _at ?? localStorage.getItem('accessToken');
       if (newToken) headers.set('at', newToken);
       res = await fetch(`${API()}${path}`, { ...options, headers, credentials: 'include' });
+    } else {
+      // Refresh failed — clear tokens and notify the app to log out
+      clearTenantAuth();
+      _on401?.();
+      throw Object.assign(new Error('Session expired — please sign in again.'), { status: 401 });
     }
   }
 
   if (!res.ok) {
+    // If retry after refresh still comes back 401, sign out
+    if (res.status === 401) {
+      clearTenantAuth();
+      _on401?.();
+      throw Object.assign(new Error('Session expired — please sign in again.'), { status: 401 });
+    }
     const err = await res.json().catch(() => ({ message: res.statusText })) as { message?: string };
     const error = Object.assign(new Error(err.message ?? 'Request failed'), { status: res.status });
     throw error;
@@ -121,13 +145,36 @@ export function many<T>(key: string, limit: number) {
     hasPrevPage: !!res.hasPrevPage,
   });
 }
+export const getTenantSlug = (email: string) => {
+  if (!email || !email.includes("@")) return;
+  const slug = email.split("@")[1].split(".")[0];
+  return slug
+};
 
 // Auth
-export const signIn = (email: string, password: string, rememberMe = false) =>
-  tenantFetch<SignInResponse>('/auth/signin', { method: 'POST', body: JSON.stringify({ email, password, rememberMe }) });
+export const signIn = (email: string, password: string, rememberMe = false) => {
+  const tenantSlug = getTenantSlug(email);
 
-export const forgotPassword = (email: string) =>
-  tenantFetch<ApiResponse>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
+  return tenantFetch<SignInResponse>('/auth/signin', { 
+    method: 'POST', 
+    headers: {
+      ...(tenantSlug ? { 'x-tenant-slug': tenantSlug } : {})
+    },
+    body: JSON.stringify({ email, password, rememberMe }) 
+  });
+};
+
+export const forgotPassword = (email: string) => {
+  const tenantSlug = getTenantSlug(email);
+  
+  return tenantFetch<ApiResponse>('/auth/forgot-password', { 
+    method: 'POST', 
+    headers: {
+      ...(tenantSlug ? { 'x-tenant-slug': tenantSlug } : {})
+    },
+    body: JSON.stringify({ email }) 
+  });
+};
 
 export const resetPassword = (token: string, tokenId: string, password: string) =>
   tenantFetch<ApiResponse>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, tokenId, password }) });
@@ -278,7 +325,7 @@ export const updateFinanceSettings = (group: string, body: Record<string, unknow
 
 // UAC
 export const listUsers = () =>
-  tenantFetch<RawResponse>('/account/user-access/users').then(one<User[]>('users'));
+  tenantFetch<RawResponse>('/account/user-access/users').then(one<UserEntry[]>('users'));
 export const inviteUser = (body: { email: string; firstName: string; lastName: string; roleId: string }) =>
   tenantFetch<ApiResponse>('/account/user-access/users', { method: 'POST', body: JSON.stringify(body) });
 export const resendInvite = (userId: string) =>

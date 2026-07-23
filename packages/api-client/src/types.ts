@@ -33,9 +33,17 @@ export interface User {
   firstName: string;
   lastName: string;
   role?: Role;
+  companyRole?: { _id: string; name: string };
   permissions?: Permission[];
   isEmailVerified?: boolean;
   tenantSlug?: string;
+  lastLoginDate?: string | null;
+}
+
+/** Shape returned by GET /account/user-access/users */
+export interface UserEntry {
+  user: User;
+  status: 'active' | 'inactive' | string;
 }
 
 export interface SignInResponse {
@@ -75,29 +83,72 @@ export interface Role {
 
 // ─── Finance – Customers ─────────────────────────────────────────────────────
 
-export interface Customer {
-  _id: string;
+export interface CustomerContact {
   companyName?: string;
   firstName: string;
   lastName: string;
+  fullName?: string;
   email?: string;
   phoneNumber?: string;
+  website?: string;
   currency?: string;
   type?: 'company' | 'individual';
-  contact?: { email?: string };
+}
+
+export interface Customer {
+  _id: string;
+  id?: string;
+  contact: CustomerContact;
+  // Convenience accessors (may be present on older records or form-mapped objects)
+  companyName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  isDeactivated?: boolean;
   createdAt: string;
+}
+
+/** Returns the display name for a customer regardless of data shape */
+export function customerDisplayName(c: Customer): string {
+  const firstName = c.contact?.firstName ?? c.firstName ?? '';
+  const lastName  = c.contact?.lastName  ?? c.lastName  ?? '';
+  return `${firstName} ${lastName}`.trim() || '—';
 }
 
 // ─── Finance – Merchants ─────────────────────────────────────────────────────
 
-export interface Merchant {
-  _id: string;
+export interface MerchantContact {
   companyName?: string;
   firstName: string;
   lastName: string;
+  fullName?: string;
   email?: string;
   phoneNumber?: string;
+  website?: string;
+  currency?: string;
+  type?: 'company' | 'individual';
+}
+
+export interface Merchant {
+  _id: string;
+  id?: string;
+  contact: MerchantContact;
+  // Convenience accessors
+  companyName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  isDeactivated?: boolean;
   createdAt: string;
+}
+
+/** Returns the display name for a merchant regardless of data shape */
+export function merchantDisplayName(m: Merchant): string {
+  const firstName = m.contact?.firstName ?? m.firstName ?? '';
+  const lastName  = m.contact?.lastName  ?? m.lastName  ?? '';
+  return `${firstName} ${lastName}`.trim() || '—';
 }
 
 // ─── Finance – Assets (used as invoice/bill/estimate line item catalog) ──────
