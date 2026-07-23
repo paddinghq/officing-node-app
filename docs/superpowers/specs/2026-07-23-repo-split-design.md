@@ -12,6 +12,7 @@ Goal: end up with four fully independent projects/repos — `api`, `admin`, `ten
 ## Scope
 
 This project covers:
+
 - Splitting `app/apps/platform-admin` → new `admin/` repo (flattened to root)
 - Splitting `app/apps/tenant-web` → new `tenant/` repo (flattened to root)
 - Duplicating `app/packages/api-client` into both new repos as local source (no shared package)
@@ -23,7 +24,7 @@ Out of scope: creating GitHub repos, pushing anywhere, preserving git history fo
 
 ## End-state layout
 
-```
+```text
 officing/products/officing/
   api/       (unchanged repo, minus doc files moved to docs/)
   admin/     (NEW repo, fresh git history)
@@ -36,7 +37,7 @@ officing/products/officing/
 
 Each app is flattened from `app/apps/<name>/*` to the repo root:
 
-```
+```text
 admin/                          tenant/
   package.json                    package.json
   tsconfig.json                    tsconfig.json
@@ -64,6 +65,7 @@ To avoid rewriting the 54 existing `@officing/api-client` import lines (8 in adm
 // tsconfig.json
 "paths": { "@officing/api-client": ["./src/api-client/index.ts"] }
 ```
+
 ```ts
 // vite.config.ts
 resolve: { alias: { '@officing/api-client': path.resolve(__dirname, 'src/api-client/index.ts') } }
@@ -71,7 +73,7 @@ resolve: { alias: { '@officing/api-client': path.resolve(__dirname, 'src/api-cli
 
 ## docs/ repo structure
 
-```
+```text
 docs/
   api/
     API_DOCUMENTATION.md        <- from api/ (has billing/shipping + tokenId detail root's copy lacked)
