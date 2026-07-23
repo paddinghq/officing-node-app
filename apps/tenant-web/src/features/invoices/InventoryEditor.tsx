@@ -14,11 +14,16 @@ export interface InventoryPayload {
   total: number;
 }
 
-function findAsset(assets: Asset[], id: string) { return assets.find(a => a._id === id); }
+function findAsset(assets: Asset[], id: string) { 
+  const safeAssets = Array.isArray(assets) ? assets : [];
+  return safeAssets.find(a => a._id === id); 
+}
+
 function itemAmount(assets: Asset[], item: ItemDraft) {
   const a = findAsset(assets, item.asset);
   return a ? Number(a.price) * item.quantity : 0;
 }
+
 function itemTax(assets: Asset[], item: ItemDraft) {
   const a = findAsset(assets, item.asset);
   return a ? (Number(a.price) * item.quantity * Number(a.taxRate)) / 100 : 0;
@@ -36,9 +41,12 @@ export function computeInventoryPayload(state: InventoryState, assets: Asset[]):
 interface Props { assets: Asset[]; state: InventoryState; onChange: (s: InventoryState) => void; }
 
 export function InventoryEditor({ assets, state, onChange }: Props) {
+  // Defensive check: Ensure assets is definitely an array
+  const safeAssets = Array.isArray(assets) ? assets : [];
+
   const assetOptions = [
     { value: '', label: '— Select item —' },
-    ...assets.map(a => ({ value: a._id, label: `${a.name} · ${Number(a.price).toLocaleString()}` })),
+    ...safeAssets.map(a => ({ value: a._id, label: `${a.name} · ${Number(a.price).toLocaleString()}` })),
   ];
 
   const updateItem = (i: number, patch: Partial<ItemDraft>) => {
@@ -47,7 +55,7 @@ export function InventoryEditor({ assets, state, onChange }: Props) {
   const addItem    = () => onChange({ ...state, items: [...state.items, { asset: '', quantity: 1 }] });
   const removeItem = (i: number) => onChange({ ...state, items: state.items.filter((_, idx) => idx !== i) });
 
-  const { taxRate, subtotal, total } = computeInventoryPayload(state, assets);
+  const { taxRate, subtotal, total } = computeInventoryPayload(state, safeAssets);
 
   return (
     <div className="space-y-4">
@@ -73,7 +81,7 @@ export function InventoryEditor({ assets, state, onChange }: Props) {
             <Field type="number" min="1" value={item.quantity} onChange={e => updateItem(i, { quantity: Number(e.target.value) })} />
           </div>
           <div className="col-span-3 pt-2.5 text-sm font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
-            {itemAmount(assets, item).toLocaleString()}
+            {itemAmount(safeAssets, item).toLocaleString()}
           </div>
           <div className="col-span-1 pt-2">
             <button

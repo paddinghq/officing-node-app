@@ -52,75 +52,96 @@ export function CrmSettingsPage() {
 
   return (
     <PlanGate allowed={hasCrm} feature="CRM Settings">
-      <PageShell title="CRM settings" subtitle="Configure your pipeline, currencies and targets." maxWidth="max-w-2xl">
-        <form onSubmit={e => { e.preventDefault(); mutation.mutate(); }} className="space-y-5">
-          {/* Pipeline stages */}
-          <SCard title="Pipeline stages">
-            {!isLoading && (
-              <>
-                <div className="grid grid-cols-12 gap-2 mb-2 px-1">
-                  {['Key', 'Label', 'Order', 'Prob.', 'Color', ''].map((h, i) => (
-                    <span key={i} className={`text-[11px] font-bold uppercase tracking-wide ${i < 3 ? 'col-span-3' : i === 3 ? 'col-span-2' : i === 4 ? 'col-span-1' : 'col-span-1'}`} style={{ color: 'var(--muted)' }}>{h}</span>
-                  ))}
-                </div>
-                {stages.map((st, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-2 items-start mb-2">
-                    <div className="col-span-3"><Field value={st.key}   onChange={e => updateStage(i, { key: e.target.value })} /></div>
-                    <div className="col-span-3"><Field value={st.label} onChange={e => updateStage(i, { label: e.target.value })} /></div>
-                    <div className="col-span-3"><Field type="number" value={st.order} onChange={e => updateStage(i, { order: Number(e.target.value) })} /></div>
-                    <div className="col-span-2"><Field type="number" value={st.defaultProbability} onChange={e => updateStage(i, { defaultProbability: Number(e.target.value) })} /></div>
-                    <div className="col-span-1">
-                      <input type="color" value={st.color ?? '#6366f1'} onChange={e => updateStage(i, { color: e.target.value })} className="w-8 h-8 rounded-lg cursor-pointer border" style={{ borderColor: 'var(--border)' }} />
-                    </div>
-                    <div className="col-span-1 pt-2">
-                      <button type="button" onClick={() => setStages(s => s.filter((_, idx) => idx !== i))} className="rounded-lg p-1" style={{ color: 'var(--muted)' }}>
-                        <Xmark width={14} height={14} />
-                      </button>
-                    </div>
+      {/* Increased max-width for the grid layout */}
+      <PageShell title="CRM settings" subtitle="Configure your pipeline, currencies and targets." maxWidth="max-w-5xl">
+        <form onSubmit={e => { e.preventDefault(); mutation.mutate(); }} className="space-y-6">
+          
+          {/* Two column grid layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            
+            {/* Left Column */}
+            <SCard title="Pipeline stages">
+              {!isLoading && (
+                <>
+                  <div className="grid grid-cols-12 gap-2 mb-2 px-1">
+                    {/* Fixed col spans so they sum up to exactly 12 columns */}
+                    {['Key', 'Label', 'Order', 'Prob.', 'Color', ''].map((h, i) => {
+                      const colSpan = i < 2 ? 'col-span-3' : i < 4 ? 'col-span-2' : 'col-span-1';
+                      return (
+                        <span key={i} className={`text-[11px] font-bold uppercase tracking-wide ${colSpan}`} style={{ color: 'var(--muted)' }}>
+                          {h}
+                        </span>
+                      );
+                    })}
                   </div>
-                ))}
-                <Btn type="button" variant="ghost" size="sm" onClick={() => setStages(s => [...s, { key: '', label: '', order: s.length, defaultProbability: 0 }])}>
-                  <Plus width={13} height={13} /> Add stage
-                </Btn>
-              </>
-            )}
-          </SCard>
-
-          {/* General */}
-          <SCard title="General">
-            <div className="space-y-4">
-              <Field label="Base currency" value={baseCurrency} onChange={e => setBase(e.target.value)} />
-              <Field label="Deal rotten after (days)" type="number" min="1" value={rottenDays} onChange={e => setRotten(e.target.value)} />
-            </div>
-          </SCard>
-
-          {/* Revenue target */}
-          <SCard title="Revenue target">
-            <div className="space-y-4">
-              <label className="flex items-center gap-2.5 text-sm cursor-pointer" style={{ color: 'var(--foreground)' }}>
-                <input type="checkbox" checked={hasTarget} onChange={e => setHasTarget(e.target.checked)} style={{ accentColor: 'var(--brand-primary)' }} />
-                Set a company-wide revenue target
-              </label>
-              {hasTarget && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={`Amount (${baseCurrency})`} type="number" min="0" value={targetAmount} onChange={e => setTargetAmt(e.target.value)} />
-                  <Field.Select label="Period" options={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }]} value={targetPeriod} onChange={e => setTargetPer(e.target.value as 'monthly' | 'quarterly')} />
-                </div>
+                  {stages.map((st, i) => (
+                    <div key={i} className="grid grid-cols-12 gap-2 items-start mb-2">
+                      <div className="col-span-3"><Field value={st.key}   onChange={e => updateStage(i, { key: e.target.value })} /></div>
+                      <div className="col-span-3"><Field value={st.label} onChange={e => updateStage(i, { label: e.target.value })} /></div>
+                      {/* Reduced to col-span-2 to keep everything on one line */}
+                      <div className="col-span-2"><Field type="number" value={st.order} onChange={e => updateStage(i, { order: Number(e.target.value) })} /></div>
+                      <div className="col-span-2"><Field type="number" value={st.defaultProbability} onChange={e => updateStage(i, { defaultProbability: Number(e.target.value) })} /></div>
+                      <div className="col-span-1">
+                        <input type="color" value={st.color ?? '#6366f1'} onChange={e => updateStage(i, { color: e.target.value })} className="w-8 h-8 rounded-lg cursor-pointer border" style={{ borderColor: 'var(--border)' }} />
+                      </div>
+                      <div className="col-span-1 pt-2 flex justify-end">
+                        <button type="button" onClick={() => setStages(s => s.filter((_, idx) => idx !== i))} className="rounded-lg p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800" style={{ color: 'var(--muted)' }}>
+                          <Xmark width={14} height={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="mt-3">
+                    <Btn type="button" variant="ghost" size="sm" onClick={() => setStages(s => [...s, { key: '', label: '', order: s.length, defaultProbability: 0 }])}>
+                      <Plus width={13} height={13} /> Add stage
+                    </Btn>
+                  </div>
+                </>
               )}
+            </SCard>
+
+            {/* Right Column Stack */}
+            <div className="space-y-5">
+              
+              <SCard title="General">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Base currency" value={baseCurrency} onChange={e => setBase(e.target.value)} />
+                    <Field label="Deal rotten after (days)" type="number" min="1" value={rottenDays} onChange={e => setRotten(e.target.value)} />
+                  </div>
+                </div>
+              </SCard>
+
+              <SCard title="Revenue target">
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2.5 text-sm cursor-pointer" style={{ color: 'var(--foreground)' }}>
+                    <input type="checkbox" checked={hasTarget} onChange={e => setHasTarget(e.target.checked)} style={{ accentColor: 'var(--brand-primary)' }} className="w-4 h-4" />
+                    Set a company-wide revenue target
+                  </label>
+                  {hasTarget && (
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <Field label={`Amount (${baseCurrency})`} type="number" min="0" value={targetAmount} onChange={e => setTargetAmt(e.target.value)} />
+                      <Field.Select label="Period" options={[{ value: 'monthly', label: 'Monthly' }, { value: 'quarterly', label: 'Quarterly' }]} value={targetPeriod} onChange={e => setTargetPer(e.target.value as 'monthly' | 'quarterly')} />
+                    </div>
+                  )}
+                </div>
+              </SCard>
+
+              <SCard title="Public lead capture">
+                <Field
+                  label="Capture API key (optional)"
+                  value={captureKey}
+                  onChange={e => setCaptureKey(e.target.value)}
+                  helpText="If set, your website must send this as x-crm-capture-key when POSTing to /crm/leads/capture."
+                />
+              </SCard>
+
             </div>
-          </SCard>
-
-          {/* Lead capture */}
-          <SCard title="Public lead capture">
-            <Field
-              label="Capture API key (optional)"
-              value={captureKey}
-              onChange={e => setCaptureKey(e.target.value)}
-              helpText="If set, your website must send this as x-crm-capture-key when POSTing to /crm/leads/capture."
-            />
-          </SCard>
-
-          <Btn type="submit" loading={mutation.isPending}>Save settings</Btn>
+          </div>
+          
+          <div className="flex">
+            <Btn type="submit" loading={mutation.isPending}>Save settings</Btn>
+          </div>
         </form>
       </PageShell>
     </PlanGate>

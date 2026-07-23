@@ -19,7 +19,7 @@ export function InvoiceFormPage() {
 
   const { data: invoice }   = useQuery({ queryKey: ['invoice', id], queryFn: () => getInvoice(id!), enabled: isEdit });
   const { data: customers } = useQuery({ queryKey: ['customers-select'], queryFn: () => listCustomers({ limit: 200 }) });
-  const { data: assetsRes } = useQuery({ queryKey: ['assets-select'], queryFn: () => listAssets({ limit: 200 }) });
+  const { data: assetsRes } = useQuery({ queryKey: ['assets-select'], queryFn: () => listAssets({ limit: 25 }) });
   const assets = assetsRes?.docs ?? [];
 
   useEffect(() => {

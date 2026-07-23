@@ -22,63 +22,75 @@ export function SubscriptionPage() {
   if (isLoading) return <div className="flex items-center justify-center p-16"><Spinner /></div>;
 
   return (
-    <PageShell title="Subscription" subtitle="Manage your billing plan and features." maxWidth="max-w-lg">
-      <SCard title="Current plan">
-        {sub ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="rounded-xl p-2.5"
-                  style={{ background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', color: 'var(--brand-primary)' }}
-                >
-                  <CreditCard width={18} height={18} />
+    // Added a maxWidth to prevent the cards from stretching too far on large screens
+    <PageShell title="Subscription" subtitle="Manage your billing plan and features." maxWidth="max-w-5xl">
+      
+      {/* Changed to CSS Grid. items-start prevents the right card from stretching to match the left card's height */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+        
+        <SCard title="Current plan">
+          {sub ? (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="rounded-xl p-2.5 shrink-0"
+                    style={{ background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', color: 'var(--brand-primary)' }}
+                  >
+                    <CreditCard width={18} height={18} />
+                  </div>
+                  <div>
+                    <p className="font-semibold capitalize leading-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
+                      {sub.plan} plan
+                    </p>
+                    <p className="text-xs capitalize mt-0.5" style={{ color: 'var(--muted)' }}>{sub.billingCycle} billing</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold capitalize" style={{ fontFamily: 'var(--font-display)', color: 'var(--foreground)' }}>
-                    {sub.plan} plan
+                <SBadge color={sub.accessActive ? 'success' : 'danger'}>
+                  {sub.accessActive ? 'Active' : 'Expired'}
+                </SBadge>
+              </div>
+
+              {sub.subExpDate && (
+                <div className="rounded-xl p-3" style={{ background: 'var(--surface-secondary)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'var(--muted)' }}>Expires</p>
+                  <p className="font-mono text-sm" style={{ color: 'var(--foreground)' }}>
+                    {new Date(sub.subExpDate).toLocaleDateString()}
                   </p>
-                  <p className="text-xs capitalize" style={{ color: 'var(--muted)' }}>{sub.billingCycle} billing</p>
                 </div>
-              </div>
-              <SBadge color={sub.accessActive ? 'success' : 'danger'}>{sub.accessActive ? 'Active' : 'Expired'}</SBadge>
-            </div>
+              )}
 
-            {sub.subExpDate && (
-              <div className="rounded-xl p-3" style={{ background: 'var(--surface-secondary)' }}>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'var(--muted)' }}>Expires</p>
-                <p className="font-mono text-sm" style={{ color: 'var(--foreground)' }}>
-                  {new Date(sub.subExpDate).toLocaleDateString()}
-                </p>
+              {/* Features */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>Included features</p>
+                <ul className="space-y-3">
+                  {(PLAN_FEATURES[sub.plan] ?? PLAN_FEATURES.free).map(feat => (
+                    // Changed to items-start so checkmarks align properly if text wraps on small screens
+                    <li key={feat} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--foreground)' }}>
+                      <CircleCheck width={16} height={16} style={{ color: '#16a34a', flexShrink: 0, marginTop: '2px' }} />
+                      <span className="leading-tight">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )}
-
-            {/* Features */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>Included features</p>
-              <ul className="space-y-2">
-                {(PLAN_FEATURES[sub.plan] ?? PLAN_FEATURES.free).map(feat => (
-                  <li key={feat} className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--foreground)' }}>
-                    <CircleCheck width={15} height={15} style={{ color: '#16a34a', flexShrink: 0 }} />
-                    {feat}
-                  </li>
-                ))}
-              </ul>
             </div>
+          ) : (
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>No subscription data available.</p>
+          )}
+        </SCard>
+
+        <SCard title="Upgrade or renew">
+          <div className="space-y-4">
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
+              Subscription changes are handled offline. Contact support to upgrade your plan, renew, or switch billing cycles.
+            </p>
+            <Btn onClick={() => window.location.href = 'mailto:support@officing.app'}>
+              <ArrowUpFromSquare width={14} height={14} /> Contact support
+            </Btn>
           </div>
-        ) : (
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>No subscription data available.</p>
-        )}
-      </SCard>
-
-      <SCard title="Upgrade or renew">
-        <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
-          Subscription changes are handled offline. Contact support to upgrade your plan, renew, or switch billing cycles.
-        </p>
-        <Btn onClick={() => window.location.href = 'mailto:support@officing.app'}>
-          <ArrowUpFromSquare width={14} height={14} /> Contact support
-        </Btn>
-      </SCard>
+        </SCard>
+        
+      </div>
     </PageShell>
   );
 }

@@ -16,11 +16,15 @@ export function SettingsPage() {
   const [taxRate,        setTaxRate]       = useState('');
   const [loaded,         setLoaded]        = useState(false);
 
-  // Company branding
-  const [companyName,   setCompanyName]   = useState('');
-  const [logoUrl,       setLogoUrl]       = useState('');
-  const [primaryColor,  setPrimaryColor]  = useState('');
+  // Consolidated company profile state
+  const [companyForm, setCompanyForm] = useState({
+    name: '',
+    email: '',
+    address: ''
+  });
+  
   const [companyLoaded, setCompanyLoaded] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (data?.data && !loaded) {
@@ -33,10 +37,14 @@ export function SettingsPage() {
 
   useEffect(() => {
     if (companyData?.data && !companyLoaded) {
-      const d = companyData.data as Record<string, unknown>;
-      setCompanyName((d.name as string) ?? '');
-      setLogoUrl((d.logoUrl as string) ?? '');
-      setPrimaryColor((d.primaryColor as string) ?? '');
+      const d = companyData.data as any;
+      const c = d.company || d;
+      
+      setCompanyForm({
+        name: c?.name ?? '',
+        email: c?.profile?.email ?? c?.email ?? '',
+        address: c?.profile?.address ?? c?.address ?? ''
+      });
       setCompanyLoaded(true);
     }
   }, [companyData, companyLoaded]);
@@ -44,61 +52,105 @@ export function SettingsPage() {
   const financeMut = useMutation({
     mutationFn: () => updateFinanceSettings('general', { invoicePrefix, taxRate: parseFloat(taxRate) }),
     onSuccess: () => toast.success('Settings saved'),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => toast.error(e.message),
   });
 
-  const brandingMut = useMutation({
+  const companyMut = useMutation({
     mutationFn: () => {
-      const fd = new FormData();
-      if (companyName)  fd.append('name', companyName);
-      if (logoUrl)      fd.append('logoUrl', logoUrl);
-      if (primaryColor) fd.append('primaryColor', primaryColor);
-      return updateCompany(fd);
+      setErrors({});
+      
+      const payload = {
+        name: companyForm.name,
+        profile:{          
+          email: companyForm.email,
+          address: companyForm.address
+        }
+      };
+      
+      return updateCompany({ company: payload });
     },
     onSuccess: () => {
-      toast.success('Branding saved');
-      setBranding({ primaryColor: primaryColor || undefined, logoUrl: logoUrl || undefined, name: companyName || undefined });
+      toast.success('Company profile saved');
+      setBranding({ name: companyForm.name || undefined });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (err: any) => {
+      const backendDetails = err?.response?.data?.details || err?.data?.details || err?.details;
+
+      if (Array.isArray(backendDetails)) {
+        const newErrors: Record<string, string> = {};
+        
+        backendDetails.forEach((detail: any) => {
+          const fieldKey = detail.context?.key || detail.context?.label;
+          if (fieldKey) {
+            newErrors[fieldKey] = detail.message.replace(/"/g, ''); 
+          }
+        });
+        
+        setErrors(newErrors);
+        toast.error('Please fix the errors in the form');
+      } else {
+        toast.error(err.message || 'Failed to save company profile');
+      }
+    },
   });
 
   if (isLoading) return <div className="flex items-center justify-center p-16"><Spinner /></div>;
 
   return (
-    <PageShell title="Settings" subtitle="Manage finance preferences and company branding." maxWidth="max-w-lg">
-      {/* Finance settings */}
-      <SCard title="Finance settings">
-        <form onSubmit={e => { e.preventDefault(); financeMut.mutate(); }} className="space-y-4">
-          <Field label="Invoice number prefix" value={invoicePrefix} onChange={e => setInvoicePrefix(e.target.value)} placeholder="INV-" />
-          <Field label="Tax rate (%)" type="number" step="0.01" value={taxRate} onChange={e => setTaxRate(e.target.value)} />
-          <Btn type="submit" loading={financeMut.isPending}>Save settings</Btn>
-        </form>
-      </SCard>
+    // Increased max-width to 5xl for the grid layout
+    <PageShell title="Settings" subtitle="Manage finance preferences and company profile." maxWidth="max-w-5xl">
+      
+      {/* Added CSS Grid and items-start to prevent vertical stretching */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+        
+        {/* Finance settings */}
+        <SCard title="Finance settings">
+          <form onSubmit={e => { e.preventDefault(); financeMut.mutate(); }} className="space-y-4">
+            <Field 
+              label="Invoice number prefix" 
+              value={invoicePrefix} 
+              onChange={e => setInvoicePrefix(e.target.value)} 
+              placeholder="INV-" 
+            />
+            <Field 
+              label="Tax rate (%)" 
+              type="number" 
+              step="0.01" 
+              value={taxRate} 
+              onChange={e => setTaxRate(e.target.value)} 
+            />
+            <Btn type="submit" loading={financeMut.isPending}>Save settings</Btn>
+          </form>
+        </SCard>
 
-      {/* Company branding */}
-      <SCard title="Company branding">
-        <form onSubmit={e => { e.preventDefault(); brandingMut.mutate(); }} className="space-y-4">
-          <Field label="Company name" value={companyName} onChange={e => setCompanyName(e.target.value)} />
-          <Field label="Logo URL" type="url" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://…" />
-          <div>
-            <div className="flex items-end gap-3">
-              <div className="flex-1">
-                <Field label="Brand primary color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} placeholder="#6366f1" />
-              </div>
-              {primaryColor && (
-                <div
-                  className="h-10 w-10 shrink-0 rounded-xl border shadow-sm"
-                  style={{ background: primaryColor, borderColor: 'var(--border)' }}
-                />
-              )}
-            </div>
-            <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
-              This color will be applied throughout your workspace.
-            </p>
-          </div>
-          <Btn type="submit" loading={brandingMut.isPending}>Save branding</Btn>
-        </form>
-      </SCard>
+        {/* Company Profile */}
+        <SCard title="Company profile">
+          <form onSubmit={e => { e.preventDefault(); companyMut.mutate(); }} className="space-y-4">
+            <Field 
+              label="Company name" 
+              value={companyForm.name} 
+              onChange={e => setCompanyForm(prev => ({ ...prev, name: e.target.value }))} 
+              error={errors.name} 
+            />
+            <Field 
+              label="Company email" 
+              type="email" 
+              value={companyForm.email} 
+              onChange={e => setCompanyForm(prev => ({ ...prev, email: e.target.value }))} 
+              error={errors.email} 
+            />
+            <Field.Textarea 
+              label="Company address" 
+              value={companyForm.address} 
+              onChange={e => setCompanyForm(prev => ({ ...prev, address: e.target.value }))} 
+              placeholder="123 Main St, Lagos" 
+              error={errors.address} 
+            />
+            <Btn type="submit" loading={companyMut.isPending}>Save company profile</Btn>
+          </form>
+        </SCard>
+        
+      </div>
     </PageShell>
   );
 }

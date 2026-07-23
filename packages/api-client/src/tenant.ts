@@ -187,7 +187,7 @@ export const signOut = () => { clearTenantAuth(); };
 // Company & Subscription
 export const getCompany = () =>
   tenantFetch<RawResponse>('/company').then(one<Record<string, unknown>>('company'));
-export const updateCompany = (body: FormData) => tenantFetch<ApiResponse>('/company', { method: 'PATCH', body });
+export const updateCompany = (body: Record<string, unknown>) => tenantFetch<ApiResponse>('/company', { method: 'PATCH', body: JSON.stringify(body)  });
 export const getSubscription = () => tenantFetch<{ success: boolean; subscription: Subscription }>('/subscription');
 
 export interface ListParams { page?: number; limit?: number; from?: string; to?: string; status?: string; [key: string]: unknown; }

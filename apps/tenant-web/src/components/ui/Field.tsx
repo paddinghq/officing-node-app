@@ -14,6 +14,7 @@ function FieldLabel({ label, required }: { label?: string; required?: boolean })
     </label>
   );
 }
+
 function FieldHelp({ text, error }: { text?: string; error?: string }) {
   if (error) return <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{error}</p>;
   if (text)  return <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>{text}</p>;
@@ -23,12 +24,18 @@ function FieldHelp({ text, error }: { text?: string; error?: string }) {
 const INPUT_CLS = `
   w-full rounded-xl border px-3 py-2.5 text-sm transition-colors outline-none
   focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)]
+  disabled:cursor-not-allowed disabled:opacity-80
 `;
-const INPUT_STYLE: React.CSSProperties = {
-  background: 'var(--field-background)',
-  borderColor: 'var(--field-border)',
-  color: 'var(--field-foreground)',
-};
+
+// Helper to handle inline style overrides based on disabled state
+function getFieldStyle(disabled?: boolean, customStyle?: React.CSSProperties): React.CSSProperties {
+  return {
+    background: disabled ? 'var(--surface-secondary, #f3f4f6)' : 'var(--field-background)',
+    borderColor: 'var(--field-border)',
+    color: disabled ? 'var(--muted, #6b7280)' : 'var(--field-foreground)',
+    ...customStyle,
+  };
+}
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -50,7 +57,7 @@ export function Field({ label, error, helpText, startIcon, className = '', style
         <input
           {...props}
           className={`${INPUT_CLS} ${startIcon ? 'pl-9' : ''} ${error ? 'border-[var(--danger)]' : ''} ${className}`}
-          style={{ ...INPUT_STYLE, ...style }}
+          style={getFieldStyle(props.disabled, style)}
         />
       </div>
       <FieldHelp text={helpText} error={error} />
@@ -71,7 +78,7 @@ Field.Select = function FieldSelect({ label, error, options, className = '', sty
       <select
         {...props}
         className={`${INPUT_CLS} ${error ? 'border-[var(--danger)]' : ''} ${className}`}
-        style={{ ...INPUT_STYLE, ...style }}
+        style={getFieldStyle(props.disabled, style)}
       >
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -93,7 +100,7 @@ Field.Textarea = function FieldTextarea({ label, error, helpText, className = ''
       <textarea
         {...props}
         className={`${INPUT_CLS} resize-y min-h-[80px] ${error ? 'border-[var(--danger)]' : ''} ${className}`}
-        style={{ ...INPUT_STYLE, ...style }}
+        style={getFieldStyle(props.disabled, style)}
       />
       <FieldHelp text={helpText} error={error} />
     </div>
