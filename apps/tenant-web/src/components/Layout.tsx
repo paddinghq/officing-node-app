@@ -1,10 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import {
-  Avatar,
-  Dropdown,
-  Label,
-} from '@heroui/react';
 import {
   ChartBar,
   FileText,
@@ -151,68 +146,83 @@ function UserMenu({
   user: { firstName: string; lastName: string; email: string } | null;
   onLogout: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
   if (!user) return null;
   const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase();
 
   return (
-    <div className={`p-3 border-t border-[var(--separator)] ${collapsed ? 'flex justify-center' : ''}`}>
-      {/* @ts-expect-error HeroUI v3.2.2 types missing children for Dropdown */}
-      <Dropdown>
-        <button
-          className={`flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-[var(--surface-secondary)] outline-none ${
-            collapsed ? 'justify-center' : 'w-full text-left'
-          }`}
+    <div
+      ref={ref}
+      className={`relative p-3 border-t border-[var(--separator)] ${collapsed ? 'flex justify-center' : ''}`}
+    >
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-[var(--surface-secondary)] outline-none ${
+          collapsed ? 'justify-center' : 'w-full text-left'
+        }`}
+      >
+        <span
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+          style={{
+            background: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
+            color: 'var(--brand-primary)',
+          }}
         >
-          <Avatar className="shrink-0">
-            {/* @ts-expect-error HeroUI v3.2.2 types missing src for Avatar.Image */}
-            <Avatar.Image src="" alt={user.firstName} />
-            {/* @ts-expect-error HeroUI v3.2.2 types missing children/style for Avatar.Fallback */}
-            <Avatar.Fallback
-              className="flex h-full w-full items-center justify-center text-xs font-bold"
-              style={{
-                background: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
-                color: 'var(--brand-primary)',
-              }}
-            >
-              {initials}
-            </Avatar.Fallback>
-          </Avatar>
-          {!collapsed && (
-            <>
-              <div className="min-w-0 flex-1 leading-tight">
-                <p
-                  className="truncate text-sm font-semibold"
-                  style={{ color: 'var(--foreground)' }}
-                >
-                  {user.firstName} {user.lastName}
-                </p>
-                <p className="truncate text-xs" style={{ color: 'var(--muted)' }}>
-                  {user.email}
-                </p>
-              </div>
-              <ChevronDown
-                width={13}
-                height={13}
-                style={{ color: 'var(--muted)', flexShrink: 0 }}
-              />
-            </>
-          )}
-        </button>
+          {initials}
+        </span>
+        {!collapsed && (
+          <>
+            <span className="min-w-0 flex-1 leading-tight">
+              <span
+                className="block truncate text-sm font-semibold"
+                style={{ color: 'var(--foreground)' }}
+              >
+                {user.firstName} {user.lastName}
+              </span>
+              <span className="block truncate text-xs" style={{ color: 'var(--muted)' }}>
+                {user.email}
+              </span>
+            </span>
+            <ChevronDown
+              width={13}
+              height={13}
+              style={{ color: 'var(--muted)', flexShrink: 0 }}
+            />
+          </>
+        )}
+      </button>
 
-        <Dropdown.Popover className="min-w-[200px]">
-          {/* @ts-expect-error HeroUI v3.2.2 types missing children for Dropdown.Menu */}
-          <Dropdown.Menu onAction={(key: React.Key) => key === 'logout' && onLogout()}>
-            {/* @ts-expect-error HeroUI v3.2.2 types missing children for Dropdown.Item */}
-            <Dropdown.Item id="logout" textValue="Log out">
-              <div className="flex items-center gap-2 text-red-600">
-                <ArrowRightFromSquare width={15} height={15} />
-                {/* @ts-expect-error HeroUI v3.2.2 types missing children for Label */}
-                <Label className="cursor-pointer text-red-600">Log out</Label>
-              </div>
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown.Popover>
-      </Dropdown>
+      {open && (
+        <div
+          className="absolute bottom-full left-3 right-3 mb-1 rounded-xl border shadow-lg overflow-hidden"
+          style={{
+            background: 'var(--overlay)',
+            borderColor: 'var(--border)',
+            minWidth: 180,
+          }}
+        >
+          <button
+            onClick={() => { setOpen(false); onLogout(); }}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-sm transition-colors hover:bg-[var(--surface-secondary)]"
+            style={{ color: '#dc2626' }}
+          >
+            <ArrowRightFromSquare width={15} height={15} />
+            Log out
+          </button>
+        </div>
+      )}
     </div>
   );
 }
